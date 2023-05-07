@@ -1,14 +1,47 @@
 package pinggy
 
 import (
+	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 
 	"golang.org/x/crypto/ssh"
 )
 
 type Config struct {
+}
+
+func printConnectionUrl(conn net.Conn) {
+
+	req, err := http.NewRequest("GET", "http://localhost:4300/urls", nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+	err = req.Write(conn)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return
+	}
+
+	// Read the HTTP response
+	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	if err != nil {
+		fmt.Println("Error reading response:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Print the response body
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading body:", err)
+		return
+	}
+	fmt.Println(string(body))
 }
 
 func Connect(token string) (net.Listener, error) {
@@ -33,6 +66,12 @@ func Connect(token string) (net.Listener, error) {
 		clientConn.Close()
 		log.Printf("Error in ssh tunnel initiation: %v\n", err)
 		return nil, err
+	}
+	conn, err := clientConn.Dial("tcp", "localhost:4300")
+	if err != nil {
+		log.Println(err)
+	} else {
+		printConnectionUrl(conn)
 	}
 	return listener, nil
 }
