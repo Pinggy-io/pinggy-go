@@ -8,7 +8,7 @@ import (
 )
 
 func TestConnection(t *testing.T) {
-	l, err := pinggy.Connect("123")
+	l, err := pinggy.Connect()
 	if err != nil {
 		t.Fatalf("Test failed: %v\n", err)
 	}
