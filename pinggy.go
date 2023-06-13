@@ -145,7 +145,11 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-	conf.logger.Printf("Initiating ssh connection using token: %s to server: %s\n", conf.Token, pinggyServer)
+	usingToken := "without using any token"
+	if conf.Token != "" {
+		usingToken = fmt.Sprintf("using token: %s", conf.Token)
+	}
+	conf.logger.Printf("Initiating ssh connection %s to server: %s\n", usingToken, pinggyServer)
 
 	addr := fmt.Sprintf("%s:443", pinggyServer)
 	conn, err := net.Dial("tcp", addr)
