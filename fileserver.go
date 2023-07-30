@@ -2,14 +2,15 @@ package pinggy
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
-	"net/http"
 	"os"
 )
 
 type FileServerConfig struct {
 	Conf            Config
 	Path            string
+	Fs              fs.FS
 	WebDebugEnabled bool
 	WebDebugPort    int
 }
@@ -24,7 +25,13 @@ func ServeFileWithToken(token string, path string) {
 
 func ServeFileWithConfig(conf FileServerConfig) {
 	path := conf.Path
-	http.Handle("/", http.FileServer(http.Dir(path)))
+	var fs fs.FS
+	if conf.Fs != nil {
+		fs = conf.Fs
+	} else {
+		fs = os.DirFS(path)
+	}
+	// http.Handle("/", http.FileServer(fs))
 	l, e := ConnectWithConfig(conf.Conf)
 	if e != nil {
 		log.Fatal(e)
@@ -47,5 +54,6 @@ func ServeFileWithConfig(conf FileServerConfig) {
 		}
 		fmt.Printf("WebDebugUI running at http://0.0.0.0:%d/\n", port)
 	}
-	log.Fatal(http.Serve(l, nil))
+	// log.Fatal(http.Serve(l, nil))
+	log.Fatal(l.ServeHttp(fs))
 }

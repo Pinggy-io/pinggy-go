@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -42,9 +45,29 @@ type Config struct {
 		Simply enable this flag and this package would take care of this problem.
 	*/
 	SshOverSsl bool
+	/*
+		Pinggy server to connect to. Default value `a.pinggy.io`.
+		Users are discouraged to use this.
+	*/
+	Server string
+
+	port int
 }
 
 func (conf *Config) verify() {
+	if conf.Server == "" {
+		conf.Server = "a.pinggy.io"
+	}
+	addr := strings.Split(conf.Server, ":")
+	conf.port = 443
+	conf.Server = addr[0]
+	if len(addr) > 1 {
+		p, err := strconv.Atoi(addr[1])
+		if err != nil {
+			conf.logger.Fatal(err)
+		}
+		conf.port = p
+	}
 	if conf.logger == nil {
 		conf.logger = log.Default()
 	}
@@ -58,12 +81,19 @@ type PinggyListener interface {
 	/*
 		Return the remote urls to access the tunnels.
 	*/
+
 	RemoteUrls() []string
 	/*
 		Start webdebugger. This can not be call multiple time. Once the debugger started, it cannot be closed.
 		Also, the debugger is not available in case of `tls` and `tcp` tunnel
 	*/
+
 	InitiateWebDebug(addr string) error
+
+	/*
+		Start we webserver.
+	*/
+	ServeHttp(fs fs.FS) error
 }
 
 type pinggyListener struct {
@@ -74,7 +104,7 @@ type pinggyListener struct {
 	debugListener net.Listener
 }
 
-func (pl *pinggyListener) printConnectionUrl() []string {
+func (pl *pinggyListener) getConnectionUrl() []string {
 	logger := pl.conf.logger
 
 	conn, err := pl.clientConn.Dial("tcp", "localhost:4300")
@@ -116,6 +146,7 @@ func (pl *pinggyListener) printConnectionUrl() []string {
 		logger.Println("Error parsing body:", err)
 		return nil
 	}
+	logger.Println(urls)
 	return urls["urls"]
 }
 
@@ -133,7 +164,6 @@ func ConnectTls(token string) (PinggyListener, error) {
 }
 
 func dialWithConfig(conf *Config) (*ssh.Client, error) {
-	pinggyServer := "a.pinggy.io"
 	user := "auth" + "+" + string(conf.Type)
 	if conf.Token != "" {
 		user = conf.Token + "+" + user
@@ -149,16 +179,16 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 	if conf.Token != "" {
 		usingToken = fmt.Sprintf("using token: %s", conf.Token)
 	}
-	conf.logger.Printf("Initiating ssh connection %s to server: %s\n", usingToken, pinggyServer)
+	conf.logger.Printf("Initiating ssh connection %s to server: %s:%d\n", usingToken, conf.Server, conf.port)
 
-	addr := fmt.Sprintf("%s:443", pinggyServer)
+	addr := fmt.Sprintf("%s:%d", conf.Server, conf.port)
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		conf.logger.Printf("Error in ssh connection initiation: %v\n", err)
 		return nil, err
 	}
 	if conf.SshOverSsl {
-		tlsConn := tls.Client(conn, &tls.Config{ServerName: pinggyServer})
+		tlsConn := tls.Client(conn, &tls.Config{ServerName: conf.Server})
 		err := tlsConn.Handshake()
 		if err != nil {
 			conf.logger.Printf("Error in ssh connection initiation: %v\n", err)
@@ -197,7 +227,7 @@ func ConnectWithConfig(conf Config) (PinggyListener, error) {
 func (pl *pinggyListener) Accept() (net.Conn, error) { return pl.listener.Accept() }
 func (pl *pinggyListener) Close() error {
 	err := pl.listener.Close()
-	if pl.debugListener == nil {
+	if pl.debugListener != nil {
 		pl.debugListener.Close()
 		pl.debugListener = nil
 	}
@@ -210,7 +240,7 @@ func (pl *pinggyListener) Close() error {
 }
 func (pl *pinggyListener) Addr() net.Addr { return pl.listener.Addr() }
 func (pl *pinggyListener) RemoteUrls() []string {
-	urls := pl.printConnectionUrl()
+	urls := pl.getConnectionUrl()
 	if urls == nil {
 		return make([]string, 0)
 	}
@@ -260,4 +290,12 @@ func (pl *pinggyListener) InitiateWebDebug(addr string) error {
 	}()
 	pl.debugListener = webListener
 	return nil
+}
+
+func (pl *pinggyListener) ServeHttp(fs fs.FS) error {
+	httpfs := http.FS(fs)
+
+	server := http.Server{}
+	server.Handler = http.FileServer(httpfs)
+	return server.Serve(pl.listener)
 }

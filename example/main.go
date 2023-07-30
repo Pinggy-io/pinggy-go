@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+
 	"github.com/abhimp/pinggy"
 )
 
@@ -21,5 +25,13 @@ import (
 // }
 
 func main() {
-	pinggy.ServeFileWithConfig(pinggy.FileServerConfig{Path: "/tmp/", Conf: pinggy.Config{Type: pinggy.HTTP}, WebDebugEnabled: true})
+	log.SetFlags(log.Llongfile | log.LstdFlags)
+	// pinggy.ServeFileWithConfig(pinggy.FileServerConfi?g{Path: "/tmp/", Conf: pinggy.Config{Type: pinggy.HTTP}, WebDebugEnabled: true})
+	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "t.pinggy.io"})
+	if err != nil {
+		log.Fatal(err)
+	}
+	pl.InitiateWebDebug("0.0.0.0:4300")
+	fmt.Println(pl.RemoteUrls())
+	pl.ServeHttp(os.DirFS("/tmp"))
 }
