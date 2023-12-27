@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/abhimp/pinggy"
+	"github.com/Pinggy-io/pinggy-go/lib/pinggy"
 )
 
 type mapFS struct {
@@ -110,7 +110,7 @@ func TestFileServing(t *testing.T) {
 	fdata := []byte("This is data")
 
 	var fs fs.FS = NewMapFS(map[string][]byte{fname: fdata})
-	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "t.pinggy.io"})
+	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "a.pinggy.io"})
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()

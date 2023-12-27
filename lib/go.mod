@@ -1,4 +1,4 @@
-module github.com/abhimp/pinggy
+module github.com/Pinggy-io/pinggy-go/lib
 
 go 1.16
 

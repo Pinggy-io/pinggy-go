@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# mkdir exes || true
+
+buildExe() {
+    path="$1"
+    name="$2"
+    echo $path
+    go build -C "$path" -o "$PWD"/exes/"$name"
+}
+
+for x in `find . -name main.go`
+do
+    buildExe "$(dirname "$x")" "$(basename $(dirname "$x"))"
+done
