@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pinggy-io/pinggy-go/lib/pinggy"
+	"github.com/Pinggy-io/pinggy-go/pinggy"
 )
 
 type mapFS struct {

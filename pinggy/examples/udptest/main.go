@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/Pinggy-io/pinggy-go/lib/pinggy"
+	"github.com/Pinggy-io/pinggy-go/pinggy"
 )
 
 func setupCopyFile(conn net.Conn) {
@@ -27,20 +27,21 @@ func setupCopyFile(conn net.Conn) {
 
 func main() {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
-	// pinggy.ServeFileWithConfig(pinggy.FileServerConfi?g{Path: "/tmp/", Conf: pinggy.Config{Type: pinggy.HTTP}, WebDebugEnabled: true})
-	pl, err := pinggy.ConnectWithConfig(pinggy.Config{})
+	pl, err := pinggy.ConnectWithConfig(pinggy.Config{AltType: pinggy.UDP, Server: "l:7878", Token: "noscreen"})
 	if err != nil {
 		log.Fatal(err)
 	}
 	pl.InitiateWebDebug("0.0.0.0:4300")
 	fmt.Println(pl.RemoteUrls())
 	// pl.ServeHttp(os.DirFS("/tmp"))
+	buffer := make([]byte, 2096)
 	for {
 		fmt.Println("asdas")
-		con, err := pl.Accept()
+		n, addr, err := pl.ReadFrom(buffer)
 		if err != nil {
+			fmt.Println(err)
 			break
 		}
-		go setupCopyFile(con)
+		fmt.Println("Recved ", n, " bytes from ", addr.String())
 	}
 }
