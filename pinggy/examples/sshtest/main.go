@@ -72,14 +72,14 @@ func setupCopyFile(conn net.Conn) {
 
 func main() {
 	clientConfig := &ssh.ClientConfig{
-		User: "somename",
+		User: "somename+tcp",
 		Auth: []ssh.AuthMethod{
 			ssh.Password("nopass"),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	addr := "t.pinggy.io:443"
+	addr := "l:7878" //"t.pinggy.io:443"
 
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {

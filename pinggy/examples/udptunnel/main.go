@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/Pinggy-io/pinggy-go/pinggy/udptunnel"
+	"github.com/Pinggy-io/pinggy-go/pinggy/tunnel"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	forwarder, err := udptunnel.NewTunnelMangerListen(tcpPort, os.Args[2])
+	forwarder, err := tunnel.NewUdpTunnelMangerListen(tcpPort, os.Args[2])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

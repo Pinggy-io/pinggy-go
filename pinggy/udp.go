@@ -14,7 +14,7 @@ type packet struct {
 	closed bool
 }
 
-type tunnel struct {
+type udpTunnel struct {
 	addr net.Addr
 	conn net.Conn
 
@@ -28,16 +28,16 @@ type packetForwardingHandler struct {
 	list        net.Listener
 	port        uint16
 	readChannel chan *packet
-	tunnels     map[string]tunnel
+	tunnels     map[string]udpTunnel
 }
 
-func (t *tunnel) close() {
+func (t *udpTunnel) close() {
 	t.closed = true
 	t.closeChannel <- true
 	t.conn.Close()
 }
 
-func (t *tunnel) copyToTcp() {
+func (t *udpTunnel) copyToTcp() {
 	defer t.close()
 	for {
 		select {
@@ -63,7 +63,7 @@ func (t *tunnel) copyToTcp() {
 	}
 }
 
-func (t *tunnel) copyToUdp() {
+func (t *udpTunnel) copyToUdp() {
 	defer t.close()
 	buffer := make([]byte, 2048)
 	for {
@@ -98,7 +98,7 @@ func (pfh *packetForwardingHandler) startTunnel(conn net.Conn) {
 	if pfh.port == 0 {
 		pfh.port += 1
 	}
-	tun := tunnel{
+	tun := udpTunnel{
 		conn:         conn,
 		addr:         &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: int(pfh.port)}, //FIXME
 		pfh:          pfh,

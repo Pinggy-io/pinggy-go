@@ -1,34 +1,29 @@
-package udptunnel
+package tunnel
 
 import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
 )
 
-type DatagramDialer interface {
-	Dial() (net.PacketConn, error)
-	GetAddr() *net.UDPAddr
+type UdpDialer interface {
+	Dialer
+	Dial() (*net.UDPConn, error)
 }
-
-type TunnelManager interface {
-	StartForwarding()
-	AcceptAndForward() error
-}
-
-type tunnel struct {
-	packetConn net.PacketConn
+type udpTunnel struct {
+	packetConn *net.UDPConn
 	streamConn net.Conn
 	toAddr     net.Addr
 }
 
-func (c *tunnel) close() {
+func (c *udpTunnel) close() {
 	c.packetConn.Close()
 	c.streamConn.Close()
 }
 
-func (c *tunnel) copyToTcp() {
+func (c *udpTunnel) copyToTcp() {
 	defer c.close()
 	buffer := make([]byte, 2048)
 	for {
@@ -45,12 +40,13 @@ func (c *tunnel) copyToTcp() {
 		fmt.Println("Writing ", n+2, "bytes to TCP")
 		_, err = c.streamConn.Write(packet)
 		if err != nil {
+			log.Println("Error while writing packet to tcp, ", err)
 			break
 		}
 	}
 }
 
-func (c *tunnel) copyToUdp() {
+func (c *udpTunnel) copyToUdp() {
 	defer c.close()
 	buffer := make([]byte, 2048)
 	for {
@@ -69,11 +65,12 @@ func (c *tunnel) copyToUdp() {
 			break
 		}
 
-		fmt.Println("Writing ", length, "bytes to UDP")
+		fmt.Println("Writing ", length, "bytes to UDP", c.toAddr.String())
 
 		// Write the data to the TCP connection
-		_, err = c.packetConn.WriteTo(buffer[:length], c.toAddr)
+		_, err = c.packetConn.Write(buffer[:length])
 		if err != nil {
+			log.Println("Error while writing packet to udp, ", err)
 			break
 		}
 	}
@@ -83,32 +80,43 @@ type udpDialer struct {
 	udpAddr *net.UDPAddr
 }
 
-func (u *udpDialer) Dial() (net.PacketConn, error) {
+func (u *udpDialer) Dial() (*net.UDPConn, error) {
 	return net.DialUDP("udp", nil, u.udpAddr)
 }
 
-func (u *udpDialer) GetAddr() *net.UDPAddr {
+func (u *udpDialer) GetAddr() net.Addr {
 	return u.udpAddr
 }
 
-type tunnelManager struct {
-	dialer       DatagramDialer
+func (u *udpDialer) UpdateAddr(addr net.Addr) {
+	if addr == nil {
+		return
+	}
+	udpAddr, ok := addr.(*net.UDPAddr)
+	if !ok {
+		return
+	}
+	u.udpAddr = udpAddr
+}
+
+type udpTunnelManager struct {
+	dialer       UdpDialer
 	connListener net.Listener
 }
 
-func (t *tunnelManager) StartTunnel(streamConn net.Conn) {
+func (t *udpTunnelManager) StartTunnel(streamConn net.Conn) {
 	packetConn, err := t.dialer.Dial()
 	if err != nil {
 		streamConn.Close()
 		return
 	}
-	tun := tunnel{packetConn: packetConn, streamConn: streamConn, toAddr: t.dialer.GetAddr()}
+	tun := udpTunnel{packetConn: packetConn, streamConn: streamConn, toAddr: t.dialer.GetAddr()}
 	fmt.Println("Fowarding new con")
 	go tun.copyToTcp()
 	tun.copyToUdp()
 }
 
-func (t *tunnelManager) AcceptAndForward() error {
+func (t *udpTunnelManager) AcceptAndForward() error {
 	conn, err := t.connListener.Accept()
 	if err != nil {
 		return err
@@ -118,7 +126,7 @@ func (t *tunnelManager) AcceptAndForward() error {
 	return nil
 }
 
-func (t *tunnelManager) StartForwarding() {
+func (t *udpTunnelManager) StartForwarding() {
 	for {
 		err := t.AcceptAndForward()
 		if err != nil {
@@ -127,20 +135,32 @@ func (t *tunnelManager) StartForwarding() {
 	}
 }
 
-func NewTunnelManger(listener net.Listener, forwardAddr *net.UDPAddr) TunnelManager {
-	tunMan := &tunnelManager{connListener: listener, dialer: &udpDialer{udpAddr: forwardAddr}}
+func (u *udpTunnelManager) GetDialer() Dialer {
+	return u.dialer
+}
+
+func NewUdpDialer(forwardAddr *net.UDPAddr) UdpDialer {
+	return &udpDialer{udpAddr: forwardAddr}
+}
+
+func NewUdpTunnelMangerWithDialer(listener net.Listener, dialer UdpDialer) TunnelManager {
+	tunMan := &udpTunnelManager{connListener: listener, dialer: dialer}
 	return tunMan
 }
 
-func NewTunnelMangerAddr(listener net.Listener, forwardAddr string) (TunnelManager, error) {
+func NewUdpTunnelMangerAddr(listener net.Listener, forwardAddr *net.UDPAddr) TunnelManager {
+	return NewUdpTunnelMangerWithDialer(listener, &udpDialer{udpAddr: forwardAddr})
+}
+
+func NewUdpTunnelManger(listener net.Listener, forwardAddr string) (TunnelManager, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", forwardAddr)
 	if err != nil {
 		return nil, err
 	}
-	return NewTunnelManger(listener, udpAddr), nil
+	return NewUdpTunnelMangerAddr(listener, udpAddr), nil
 }
 
-func NewTunnelMangerListen(listeningPort int, forwardAddr string) (TunnelManager, error) {
+func NewUdpTunnelMangerListen(listeningPort int, forwardAddr string) (TunnelManager, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", forwardAddr)
 	if err != nil {
 		return nil, err
@@ -150,5 +170,5 @@ func NewTunnelMangerListen(listeningPort int, forwardAddr string) (TunnelManager
 		return nil, err
 	}
 	fmt.Println("Listening: ", listeningPort)
-	return NewTunnelManger(listener, udpAddr), nil
+	return NewUdpTunnelMangerAddr(listener, udpAddr), nil
 }

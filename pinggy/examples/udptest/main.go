@@ -36,12 +36,13 @@ func main() {
 	// pl.ServeHttp(os.DirFS("/tmp"))
 	buffer := make([]byte, 2096)
 	for {
-		fmt.Println("asdas")
+		fmt.Println("receiving")
 		n, addr, err := pl.ReadFrom(buffer)
 		if err != nil {
 			fmt.Println(err)
 			break
 		}
 		fmt.Println("Recved ", n, " bytes from ", addr.String())
+		pl.WriteTo(buffer[:n], addr)
 	}
 }
