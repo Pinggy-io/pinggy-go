@@ -45,9 +45,9 @@ func (conf *Config) verify() {
 		conf.AltType = ""
 	}
 
-	if conf.Type != "" && conf.AltType != "" {
-		conf.AltType = ""
-	}
+	// if conf.Type != "" && conf.AltType != "" {
+	// 	conf.AltType = ""
+	// }
 
 	if conf.Type == "" && conf.AltType == "" {
 		conf.Type = HTTP

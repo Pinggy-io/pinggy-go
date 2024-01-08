@@ -8,8 +8,10 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
+	"github.com/Pinggy-io/pinggy-go/pinggy/socks"
 	"github.com/Pinggy-io/pinggy-go/pinggy/tunnel"
 	"golang.org/x/crypto/ssh"
 )
@@ -18,6 +20,7 @@ type pinggyListener struct {
 	conf          *Config
 	clientConn    *ssh.Client
 	listener      net.Listener
+	udpListener   net.Listener
 	session       *ssh.Session
 	debugListener net.Listener
 	udpChannel    bool
@@ -28,6 +31,23 @@ type pinggyListener struct {
 	udpDialer tunnel.UdpDialer
 
 	udpHandler *packetForwardingHandler
+}
+
+type udpListenerWrapper struct {
+	udpListener socks.Socks5u
+}
+
+func (ul *udpListenerWrapper) Accept() (net.Conn, error) {
+	conn, _, err := ul.udpListener.AcceptUdp()
+	return conn, err
+}
+
+func (ul *udpListenerWrapper) Close() error {
+	return ul.udpListener.Close()
+}
+
+func (ul *udpListenerWrapper) Addr() net.Addr {
+	return ul.udpListener.Addr()
 }
 
 // func (pl *pinggyListener) isSocks() bool { return pl.udpChannel && pl.tcpChannel }
@@ -260,13 +280,23 @@ func setupPinggyTunnel(conf Config) (*pinggyListener, error) {
 		return nil, err
 	}
 
+	var udpListener net.Listener = listener
+
+	if conf.Type != "" && conf.AltType != "" {
+		socksListener := socks.InitiatateSocks5u(listener)
+		udpListener = &udpListenerWrapper{udpListener: socksListener}
+		listener = socksListener
+		go socksListener.Start()
+	}
+
 	list := &pinggyListener{
-		listener:   listener,
-		clientConn: clientConn,
-		conf:       &conf,
-		tcpChannel: conf.Type != "",
-		udpChannel: conf.AltType != "",
-		closed:     false,
+		listener:    listener,
+		udpListener: udpListener,
+		clientConn:  clientConn,
+		conf:        &conf,
+		tcpChannel:  conf.Type != "",
+		udpChannel:  conf.AltType != "",
+		closed:      false,
 
 		tcpDialer: nil,
 		udpDialer: nil,
@@ -280,6 +310,7 @@ func setupPinggyTunnel(conf Config) (*pinggyListener, error) {
 		}
 		list.tcpDialer = tunnel.NewTcpDialer(addr)
 	}
+
 	if conf.ForwardUdpTo != "" {
 		addr, err := net.ResolveUDPAddr("udp", conf.ForwardUdpTo)
 		if err != nil {
@@ -291,7 +322,7 @@ func setupPinggyTunnel(conf Config) (*pinggyListener, error) {
 
 	if list.udpChannel && list.udpDialer == nil {
 		list.udpHandler = &packetForwardingHandler{
-			list:        list.listener,
+			list:        list.udpListener,
 			readChannel: make(chan *packet, 50),
 			tunnels:     make(map[string]udpTunnel),
 		}
@@ -302,17 +333,30 @@ func setupPinggyTunnel(conf Config) (*pinggyListener, error) {
 }
 
 func (pl *pinggyListener) StartForwarding() error {
+	var wg sync.WaitGroup
+	forwarding := false
 	//add socks here
 	if pl.udpChannel && pl.udpDialer != nil {
-		udpTunnelMan := tunnel.NewUdpTunnelMangerWithDialer(pl.listener, pl.udpDialer)
-		udpTunnelMan.StartForwarding()
-		return nil
+		forwarding = true
+		wg.Add(1)
+		go func(pl *pinggyListener, wg *sync.WaitGroup) {
+			defer wg.Done()
+			udpTunnelMan := tunnel.NewUdpTunnelMangerWithDialer(pl.udpListener, pl.udpDialer)
+			udpTunnelMan.StartForwarding()
+		}(pl, &wg)
 	}
 	if pl.tcpChannel && pl.tcpDialer != nil {
-		tcpTunnelMan := tunnel.NewTcpTunnelMangerDialer(pl.listener, pl.tcpDialer)
-		tcpTunnelMan.StartForwarding()
-		return nil
+		forwarding = true
+		wg.Add(1)
+		go func(pl *pinggyListener, wg *sync.WaitGroup) {
+			defer wg.Done()
+			tcpTunnelMan := tunnel.NewTcpTunnelMangerDialer(pl.listener, pl.tcpDialer)
+			tcpTunnelMan.StartForwarding()
+		}(pl, &wg)
 	}
-
-	return fmt.Errorf("nothing to forward")
+	if !forwarding {
+		return fmt.Errorf("nothing to forward")
+	}
+	wg.Wait()
+	return nil
 }
