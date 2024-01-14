@@ -7,22 +7,58 @@ import (
 	"os"
 )
 
+/*
+Configuration for a simple http file server.
+This struct can be used to create simple file server using pinggy.
+*/
 type FileServerConfig struct {
-	Conf            Config
-	Path            string
-	Fs              fs.FS
+	/*
+		Pinggy tunnel config. check pinggy config for more details.
+	*/
+	TunnelConf Config
+
+	/*
+		Local directory path. The server would list all the file inside the directory.
+		The pathe would be used only if `Fs` is nil.
+	*/
+	Path string
+
+	/*
+		A file system object. It can initiated by `os.DirFS(path)`. However, it can be a
+		simple object with implements the `fs.FS` interface. Pinggy util module implements
+		one such object.
+	*/
+	Fs fs.FS
+
+	/*
+		Whether pinggy webdebug is enabled or not. Kindly provide valid port to enable it.
+	*/
 	WebDebugEnabled bool
-	WebDebugPort    int
+
+	/*
+		The port where pinggy webdebug would listen.
+		If you provide port at 8080, you can access the debugg ui at localhost:8080
+	*/
+	WebDebugPort int
 }
 
+/*
+Serve content of the `path` via pinggy as a http server.
+*/
 func ServeFile(path string) {
-	ServeFileWithConfig(FileServerConfig{Path: path, Conf: Config{Type: HTTP}})
+	ServeFileWithConfig(FileServerConfig{Path: path, TunnelConf: Config{Type: HTTP}})
 }
 
+/*
+Serve content of the `path` via pinggy with token.
+*/
 func ServeFileWithToken(token string, path string) {
-	ServeFileWithConfig(FileServerConfig{Path: path, Conf: Config{Type: HTTP, Token: token}})
+	ServeFileWithConfig(FileServerConfig{Path: path, TunnelConf: Config{Type: HTTP, Token: token}})
 }
 
+/*
+Serve files as http.
+*/
 func ServeFileWithConfig(conf FileServerConfig) {
 	path := conf.Path
 	var fs fs.FS
@@ -32,7 +68,7 @@ func ServeFileWithConfig(conf FileServerConfig) {
 		fs = os.DirFS(path)
 	}
 	// http.Handle("/", http.FileServer(fs))
-	l, e := ConnectWithConfig(conf.Conf)
+	l, e := ConnectWithConfig(conf.TunnelConf)
 	if e != nil {
 		log.Fatal(e)
 	}
