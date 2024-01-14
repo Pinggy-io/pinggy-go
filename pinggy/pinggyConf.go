@@ -21,12 +21,12 @@ func (conf *Config) verify() {
 	if len(addr) > 1 {
 		p, err := strconv.Atoi(addr[1])
 		if err != nil {
-			conf.logger.Fatal(err)
+			conf.Logger.Fatal(err)
 		}
 		conf.port = p
 	}
-	if conf.logger == nil {
-		conf.logger = log.Default()
+	if conf.Logger == nil {
+		conf.Logger = log.Default()
 	}
 
 	ctype := conf.Type
@@ -76,19 +76,19 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 	if conf.Token != "" {
 		usingToken = fmt.Sprintf("using token: %s", conf.Token)
 	}
-	conf.logger.Printf("Initiating ssh connection %s to server: %s:%d\n", usingToken, conf.Server, conf.port)
+	conf.Logger.Printf("Initiating ssh connection %s to server: %s:%d\n", usingToken, conf.Server, conf.port)
 
 	addr := fmt.Sprintf("%s:%d", conf.Server, conf.port)
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		conf.logger.Printf("Error in ssh connection initiation: %v\n", err)
+		conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
 		return nil, err
 	}
 	if conf.SshOverSsl {
 		tlsConn := tls.Client(conn, &tls.Config{ServerName: conf.Server})
 		err := tlsConn.Handshake()
 		if err != nil {
-			conf.logger.Printf("Error in ssh connection initiation: %v\n", err)
+			conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
 			return nil, err
 		}
 		conn = tlsConn

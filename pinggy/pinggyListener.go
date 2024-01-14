@@ -53,7 +53,7 @@ func (ul *udpListenerWrapper) Addr() net.Addr {
 // func (pl *pinggyListener) isSocks() bool { return pl.udpChannel && pl.tcpChannel }
 
 func (pl *pinggyListener) getConnectionUrl() []string {
-	logger := pl.conf.logger
+	logger := pl.conf.Logger
 
 	conn, err := pl.clientConn.Dial("tcp", "localhost:4300")
 	if err != nil {
@@ -140,12 +140,12 @@ func (pl *pinggyListener) InitiateWebDebug(addr string) error {
 	if pl.session == nil {
 		session, err := pl.clientConn.NewSession()
 		if err != nil {
-			pl.conf.logger.Println("Cannot initiate WebDebug")
+			pl.conf.Logger.Println("Cannot initiate WebDebug")
 			return err
 		}
 		err = session.Shell()
 		if err != nil {
-			pl.conf.logger.Println("Cannot initiate WebDebug")
+			pl.conf.Logger.Println("Cannot initiate WebDebug")
 			return err
 		}
 		pl.session = session
@@ -161,13 +161,13 @@ func (pl *pinggyListener) InitiateWebDebug(addr string) error {
 		for {
 			conn, err := webListener.Accept()
 			if err != nil {
-				pl.conf.logger.Println(err)
+				pl.conf.Logger.Println(err)
 				return
 			}
 			conn2, err := pl.clientConn.Dial("tcp", "localhost:4300")
 			if err != nil {
 				conn.Close()
-				pl.conf.logger.Println(err)
+				pl.conf.Logger.Println(err)
 				return
 			}
 			go io.Copy(conn, conn2)
@@ -268,15 +268,15 @@ func (pl *pinggyListener) UpdateUdpForwarding(addr string) error {
 func setupPinggyTunnel(conf Config) (*pinggyListener, error) {
 	clientConn, err := dialWithConfig(&conf)
 	if err != nil {
-		conf.logger.Printf("Error in ssh connection initiation: %v\n", err)
+		conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
 		return nil, err
 	}
 
-	conf.logger.Println("Ssh connection initiated. Setting up reverse tunnel")
+	conf.Logger.Println("Ssh connection initiated. Setting up reverse tunnel")
 	listener, err := clientConn.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
 		clientConn.Close()
-		conf.logger.Printf("Error in ssh tunnel initiation: %v\n", err)
+		conf.Logger.Printf("Error in ssh tunnel initiation: %v\n", err)
 		return nil, err
 	}
 
@@ -302,8 +302,8 @@ func setupPinggyTunnel(conf Config) (*pinggyListener, error) {
 		udpDialer: nil,
 	}
 
-	if conf.ForwardTcpTo != "" {
-		addr, err := net.ResolveTCPAddr("tcp", conf.ForwardTcpTo)
+	if conf.TcpForwardingAddr != "" {
+		addr, err := net.ResolveTCPAddr("tcp", conf.TcpForwardingAddr)
 		if err != nil {
 			list.clientConn.Close()
 			return nil, err
@@ -311,8 +311,8 @@ func setupPinggyTunnel(conf Config) (*pinggyListener, error) {
 		list.tcpDialer = tunnel.NewTcpDialer(addr)
 	}
 
-	if conf.ForwardUdpTo != "" {
-		addr, err := net.ResolveUDPAddr("udp", conf.ForwardUdpTo)
+	if conf.UdpForwardingAddr != "" {
+		addr, err := net.ResolveUDPAddr("udp", conf.UdpForwardingAddr)
 		if err != nil {
 			list.clientConn.Close()
 			return nil, err

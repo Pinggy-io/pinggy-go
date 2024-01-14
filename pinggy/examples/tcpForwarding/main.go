@@ -8,7 +8,7 @@ import (
 
 func main() {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
-	pl, err := pinggy.ConnectWithConfig(pinggy.Config{AltType: pinggy.UDP, Server: "l:7878", Token: "noscreen", ForwardUdpTo: "127.0.0.1:4000"})
+	pl, err := pinggy.ConnectWithConfig(pinggy.Config{AltType: pinggy.UDP, Server: "l:7878", Token: "noscreen", UdpForwardingAddr: "127.0.0.1:4000"})
 	if err != nil {
 		log.Panicln(err)
 	}

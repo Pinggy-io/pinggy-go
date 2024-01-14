@@ -9,12 +9,12 @@ import (
 func main() {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
 	pl, err := pinggy.ConnectWithConfig(pinggy.Config{
-		Type:         pinggy.HTTP,
-		AltType:      pinggy.UDP,
-		Server:       "l:7878",
-		Token:        "noscreen",
-		ForwardUdpTo: "127.0.0.1:4000",
-		ForwardTcpTo: "127.0.0.1:4000",
+		Type:              pinggy.HTTP,
+		AltType:           pinggy.UDP,
+		Server:            "l:7878",
+		Token:             "noscreen",
+		UdpForwardingAddr: "127.0.0.1:4000",
+		TcpForwardingAddr: "127.0.0.1:4000",
 	})
 	if err != nil {
 		log.Fatalln(err)

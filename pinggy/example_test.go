@@ -96,7 +96,7 @@ func (fi fileInfo) IsDir() bool        { return false }
 func (fi fileInfo) Sys() interface{}   { return nil }
 
 func TestConnection(t *testing.T) {
-	l, err := pinggy.Connect()
+	l, err := pinggy.Connect(pinggy.HTTP)
 	if err != nil {
 		t.Fatalf("Test failed: %v\n", err)
 	}

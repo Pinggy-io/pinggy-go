@@ -7,7 +7,7 @@ import (
 )
 
 type TunnelType string
-type AltTunnelType string
+type UDPTunnelType string
 
 const (
 	TCP  TunnelType = "tcp"
@@ -16,7 +16,7 @@ const (
 )
 
 const (
-	UDP AltTunnelType = "udp"
+	UDP UDPTunnelType = "udp"
 )
 
 type Config struct {
@@ -37,12 +37,12 @@ type Config struct {
 		both type and altType cannot be empty. As of now only one of
 		them can be populated.
 	*/
-	AltType AltTunnelType
+	AltType UDPTunnelType
 
 	/*
-		This module log several thing. We use the logger for this task. If logger is `nil`, we use the default logger.
+		This module log several thing. We use the Logger for this task. If Logger is `nil`, we use the default Logger.
 	*/
-	logger *log.Logger
+	Logger *log.Logger
 
 	/*
 		Pinggy supports ssh over ssl when user is behind a firewall which does not allow anything but ssl.
@@ -59,12 +59,12 @@ type Config struct {
 	/*
 		It will automatically forward connection to this address. Keep empty to disable it.
 	*/
-	ForwardTcpTo string
+	TcpForwardingAddr string
 
 	/*
 		It will automatically forward udp packet to this address. Keep empty to disable it.
 	*/
-	ForwardUdpTo string
+	UdpForwardingAddr string
 
 	port int
 }
@@ -111,8 +111,8 @@ Connect to pinggy service and receive a PinggyListener object.
 This function does not take any argument. So, it creates an annonymous
 tunnel with HTTP.
 */
-func Connect() (PinggyListener, error) {
-	return ConnectWithConfig(Config{Token: ""})
+func Connect(typ TunnelType) (PinggyListener, error) {
+	return ConnectWithConfig(Config{Token: "", Type: typ})
 }
 
 /*
@@ -120,22 +120,8 @@ Same as Connect() func, however it require a token. Token can be found at
 Pinggy Dashboard (dashboard.pinggy.io). One can pass empty string as token
 as well.
 */
-func ConnectToken(token string) (PinggyListener, error) {
-	return ConnectWithConfig(Config{Token: token})
-}
-
-/*
-Creates a TCP tunnel.
-*/
-func ConnectTcp(token string) (PinggyListener, error) {
-	return ConnectWithConfig(Config{Token: token, Type: TCP})
-}
-
-/*
-Creates a TLS tunnel
-*/
-func ConnectTls(token string) (PinggyListener, error) {
-	return ConnectWithConfig(Config{Token: token, Type: TLS})
+func ConnectWithToken(token string, typ TunnelType) (PinggyListener, error) {
+	return ConnectWithConfig(Config{Token: token, Type: typ})
 }
 
 /*
