@@ -1,4 +1,4 @@
-module github.com/Pinggy-io/pinggy-go
+module github.com/Pinggy-io/pinggy-go/pinggy
 
 go 1.16
 
