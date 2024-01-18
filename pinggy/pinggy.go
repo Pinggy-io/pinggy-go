@@ -1,6 +1,7 @@
 package pinggy
 
 import (
+	"io"
 	"io/fs"
 	"log"
 	"net"
@@ -18,6 +19,47 @@ const (
 const (
 	UDP UDPTunnelType = "udp"
 )
+
+type PinggyHttpHeaderInfo struct {
+	/*
+		Header name. Case insensitive
+		Key can be any header name. However, host is not allowed here.
+	*/
+	Key string `json:"headerName"`
+
+	/*
+		Whether or not to remove existing headers
+	*/
+	Remove bool `json:"remove"`
+
+	/*
+		New Values for the header. If Remove is false, new headers
+		would be added again.
+	*/
+	NewValues []string `json:"values"`
+}
+
+type PinggyHttpHeaderManipulationInfo struct {
+	/*
+		New value for the `Host` Header. It is special header.
+	*/
+	HostName string `json:"hostName"`
+
+	/*
+		Request Header modification info.
+	*/
+	Headers map[string]*PinggyHttpHeaderInfo `json:"headers"`
+
+	/*
+		List of base64 encoded basic auth info.
+	*/
+	BasicAuths map[string]bool `json:"basicAuths"`
+
+	/*
+		List of keys for bearer authentication
+	*/
+	BearerAuths map[string]bool `json:"bearerAuths"`
+}
 
 type Config struct {
 	/*
@@ -65,6 +107,25 @@ type Config struct {
 		It will automatically forward udp packet to this address. Keep empty to disable it.
 	*/
 	UdpForwardingAddr string
+
+	/*
+		IP Whitelist
+	*/
+	IpWhiteList []*net.IPNet
+
+	/*
+		Header Manipulation info
+	*/
+	HeaderManipulationInfo *PinggyHttpHeaderManipulationInfo
+
+	/*
+		There is a fixed amount of buffering that is shared for the two streams.
+		If either blocks it may eventually cause the remote command to block.
+	*/
+	Stdout io.Writer
+	Stderr io.Writer
+
+	startSession bool
 
 	port int
 }

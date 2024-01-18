@@ -27,7 +27,7 @@ func TestFileServing(t *testing.T) {
 	fdata := []byte("This is data")
 
 	var fs fs.FS = util.NewMapFS(map[string][]byte{fname: fdata})
-	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "c1.a.pinggy.link"})
+	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "a.pinggy.online"})
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()

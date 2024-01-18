@@ -52,6 +52,20 @@ func (conf *Config) verify() {
 	if conf.Type == "" && conf.AltType == "" {
 		conf.Type = HTTP
 	}
+
+	conf.startSession = false
+	if len(conf.IpWhiteList) > 0 {
+		conf.startSession = true
+	}
+	if conf.HeaderManipulationInfo != nil {
+		for _, hman := range conf.HeaderManipulationInfo.Headers {
+			if strings.ToLower(hman.Key) == "host" {
+				conf.Logger.Fatalln("host header is not allowed here")
+			}
+		}
+
+		conf.startSession = true
+	}
 }
 
 func dialWithConfig(conf *Config) (*ssh.Client, error) {
