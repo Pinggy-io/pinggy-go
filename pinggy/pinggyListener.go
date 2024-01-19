@@ -315,7 +315,7 @@ func (pl *pinggyListener) startSession() error {
 		}
 		request.Header.Set("Content-Type", "application/json")
 
-		conn, err := pl.clientConn.Dial("tcp", "localhost:4300")
+		conn, err := pl.Dial()
 		if err != nil {
 			pl.conf.Logger.Println(err)
 			return err
