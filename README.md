@@ -9,3 +9,7 @@ listener, _ := pinggy.Connect()
 
 The sdk exposes multiple helpfull APIs. It allows users to use the special feature `sshOverSsl`.
 
+
+## Documentation
+
+https://pkg.go.dev/github.com/Pinggy-io/pinggy-go/pinggy
