@@ -11,9 +11,10 @@ type TunnelType string
 type UDPTunnelType string
 
 const (
-	TCP  TunnelType = "tcp"
-	TLS  TunnelType = "tls"
-	HTTP TunnelType = "http"
+	TCP    TunnelType = "tcp"
+	TLS    TunnelType = "tls"
+	HTTP   TunnelType = "http"
+	TLSTCP TunnelType = "tlstcp"
 )
 
 const (
