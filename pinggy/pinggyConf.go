@@ -31,7 +31,7 @@ func (conf *Config) verify() {
 
 	ctype := conf.Type
 	switch ctype {
-	case HTTP, TCP, TLS:
+	case HTTP, TCP, TLS, TLSTCP:
 		conf.Type = ctype
 	default:
 		conf.Type = ""
