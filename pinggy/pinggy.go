@@ -119,8 +119,11 @@ type Config struct {
 	HeaderManipulationInfo *PinggyHttpHeaderManipulationInfo
 
 	/*
-		There is a fixed amount of buffering that is shared for the two streams.
-		If either blocks it may eventually cause the remote command to block.
+		Remote command output writer. By default it would be a instance of io.Discard.
+
+		One need to be carefull while using these file. There is a fixed amount of
+		buffering that is shared for the two streams. If either blocks it may
+		eventually cause the remote command to block.
 	*/
 	Stdout io.Writer
 	Stderr io.Writer
@@ -165,6 +168,12 @@ type PinggyListener interface {
 		Forwarding address present
 	*/
 	StartForwarding() error
+
+	/*
+		Dial a connection to tunnel server. It can be useful get various infomation without starting webdebugger.
+		One can acheive exact same result with a webdebugger as well.
+	*/
+	Dial() (net.Conn, error)
 }
 
 /*

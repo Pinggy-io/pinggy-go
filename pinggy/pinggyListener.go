@@ -442,3 +442,7 @@ func (pl *pinggyListener) StartForwarding() error {
 	wg.Wait()
 	return nil
 }
+
+func (pl *pinggyListener) Dial() (net.Conn, error) {
+	return pl.clientConn.Dial("tcp", "localhost:4300")
+}
