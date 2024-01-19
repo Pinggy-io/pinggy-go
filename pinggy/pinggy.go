@@ -39,7 +39,7 @@ type PinggyHttpHeaderInfo struct {
 	NewValues []string `json:"values"`
 }
 
-type PinggyHttpHeaderManipulationInfo struct {
+type HttpHeaderManipulationAndAuthConfig struct {
 	/*
 		New value for the `Host` Header. It is special header.
 	*/
@@ -99,12 +99,12 @@ type Config struct {
 	Server string
 
 	/*
-		It will automatically forward connection to this address. Keep empty to disable it.
+		Automatically forward connection to this address. Keep empty to disable it.
 	*/
 	TcpForwardingAddr string
 
 	/*
-		It will automatically forward udp packet to this address. Keep empty to disable it.
+		Automatically forward udp packet to this address. Keep empty to disable it.
 	*/
 	UdpForwardingAddr string
 
@@ -114,9 +114,10 @@ type Config struct {
 	IpWhiteList []*net.IPNet
 
 	/*
-		Header Manipulation info
+		Configure Header Manipulation, Basic auth, and Bearer auth for HTTP tunnels.
+		The configuration will be ignored for tunnels other than HTTP tunnels.
 	*/
-	HeaderManipulationInfo *PinggyHttpHeaderManipulationInfo
+	HeaderManipulationInfo *HttpHeaderManipulationAndAuthConfig
 
 	/*
 		Remote command output writer. By default it would be a instance of io.Discard.
