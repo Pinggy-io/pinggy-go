@@ -118,7 +118,7 @@ type Config struct {
 		Configure Header Manipulation, Basic auth, and Bearer auth for HTTP tunnels.
 		The configuration will be ignored for tunnels other than HTTP tunnels.
 	*/
-	HeaderManipulationInfo *HttpHeaderManipulationAndAuthConfig
+	HeaderManipulationAndAuth *HttpHeaderManipulationAndAuthConfig
 
 	/*
 		Remote command output writer. By default it would be a instance of io.Discard.

@@ -57,8 +57,8 @@ func (conf *Config) verify() {
 	if len(conf.IpWhiteList) > 0 {
 		conf.startSession = true
 	}
-	if conf.HeaderManipulationInfo != nil {
-		for _, hman := range conf.HeaderManipulationInfo.Headers {
+	if conf.HeaderManipulationAndAuth != nil {
+		for _, hman := range conf.HeaderManipulationAndAuth.Headers {
 			if strings.ToLower(hman.Key) == "host" {
 				conf.Logger.Fatalln("host header is not allowed here")
 			}

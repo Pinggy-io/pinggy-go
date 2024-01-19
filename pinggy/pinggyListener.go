@@ -302,8 +302,8 @@ func (pl *pinggyListener) startSession() error {
 		return err
 	}
 
-	if pl.conf.HeaderManipulationInfo != nil {
-		jsonBytes, err := json.Marshal(pl.conf.HeaderManipulationInfo)
+	if pl.conf.HeaderManipulationAndAuth != nil {
+		jsonBytes, err := json.Marshal(pl.conf.HeaderManipulationAndAuth)
 		if err != nil {
 			pl.conf.Logger.Printf("Failed to marshal JSON data: %v\n", err)
 			return err
