@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"net"
+	"time"
 )
 
 type TunnelType string
@@ -129,6 +130,11 @@ type Config struct {
 	*/
 	Stdout io.Writer
 	Stderr io.Writer
+
+	// Timeout is the maximum amount of time for the TCP connection to establish.
+	//
+	// A Timeout of zero means no timeout.
+	Timeout time.Duration
 
 	startSession bool
 

@@ -93,7 +93,7 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 	conf.Logger.Printf("Initiating ssh connection %s to server: %s:%d\n", usingToken, conf.Server, conf.port)
 
 	addr := fmt.Sprintf("%s:%d", conf.Server, conf.port)
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.DialTimeout("tcp", addr, conf.Timeout)
 	if err != nil {
 		conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
 		return nil, err
