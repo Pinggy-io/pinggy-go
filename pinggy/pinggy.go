@@ -22,6 +22,18 @@ const (
 	UDP UDPTunnelType = "udp"
 )
 
+type HeaderManipulationInterface interface {
+	AddBasicAuth(username, password string)
+	AddBearerAuth(key string)
+	SetHostname(hostname string)
+	RemoveHeader(headerName string) bool
+	RemoveHeaderValue(headerName, headerValue string)
+	AppendHeaderValue(headerName, headerValue string)
+	RemoveHeaderManipulation(headerName string)
+	ListHeaderManipulations() []byte
+	ReconstructHeaderManipulationDataFromJson([]byte) error
+}
+
 type PinggyHttpHeaderInfo struct {
 	/*
 		Header name. Case insensitive
@@ -95,7 +107,7 @@ type Config struct {
 	SshOverSsl bool
 
 	/*
-		Pinggy server to connect to. Default value `a.pinggy.io`.
+		Pinggy server to connect to. Default value `a.pinggy.io`
 		Users are discouraged to use this.
 	*/
 	Server string
