@@ -79,6 +79,9 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 	if conf.Token != "" {
 		user = conf.Token + "+" + user
 	}
+	if conf.Force {
+		user += "+force"
+	}
 	clientConfig := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{

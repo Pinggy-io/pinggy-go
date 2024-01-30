@@ -148,6 +148,11 @@ type Config struct {
 	// A Timeout of zero means no timeout.
 	Timeout time.Duration
 
+	/*
+		Force login.
+	*/
+	Force bool
+
 	startSession bool
 
 	port int
