@@ -158,6 +158,10 @@ type Config struct {
 	port int
 }
 
+type PinggyUsagesUpdateListener interface {
+	Update(line string)
+}
+
 type PinggyListener interface {
 	net.Listener
 	net.PacketConn
@@ -199,6 +203,24 @@ type PinggyListener interface {
 		One can acheive exact same result with a webdebugger as well.
 	*/
 	Dial() (net.Conn, error)
+
+	/*
+		Receive usages update. Server would provide update when it have some. You can set only one update listener.
+
+		Set update listener with nil to stop listening
+	*/
+	SetUsagesUpdateListener(usagesUpdate PinggyUsagesUpdateListener) error
+
+	/*
+		It would wait till the server have an update. It would provide only one update.
+	*/
+	LongPollUsages() (string, error)
+
+	/*
+		This would provide the
+		close the socket.
+	*/
+	GetCurUsages() (string, error)
 }
 
 /*

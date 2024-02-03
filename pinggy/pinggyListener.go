@@ -17,6 +17,15 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// {"ConfigTcp":4,"UrlTcp":8,"UsageContinuousTcp":5,"UsageOnceLongPollTcp":6,"UsageTcp":7}
+type pinggyPortConfig struct {
+	ConfigTcp            int `json:"ConfigTcp"`            //4
+	UsageContinuousTcp   int `json:"UsageContinuousTcp"`   // 5
+	UsageOnceLongPollTcp int `json:"UsageOnceLongPollTcp"` // 6
+	UsageTcp             int `json:"UsageTcp"`             //7
+	UrlTcp               int `json:"UrlTcp"`               //8
+}
+
 type pinggyListener struct {
 	conf          *Config
 	clientConn    *ssh.Client
@@ -31,7 +40,9 @@ type pinggyListener struct {
 	tcpDialer tunnel.TcpDialer
 	udpDialer tunnel.UdpDialer
 
-	udpHandler *packetForwardingHandler
+	udpHandler     *packetForwardingHandler
+	portConfig     *pinggyPortConfig
+	updateListener PinggyUsagesUpdateListener
 }
 
 type udpListenerWrapper struct {
@@ -52,6 +63,111 @@ func (ul *udpListenerWrapper) Addr() net.Addr {
 }
 
 // func (pl *pinggyListener) isSocks() bool { return pl.udpChannel && pl.tcpChannel }
+
+func (pl *pinggyListener) preparePinggyPort() error {
+	logger := pl.conf.Logger
+
+	conn, err := pl.clientConn.Dial("tcp", "localhost:4")
+	if err != nil {
+		logger.Println("Error while localhost:4, ", err)
+		return err
+	}
+
+	data, err := io.ReadAll(conn)
+	if err != nil {
+		logger.Println("Could not read: ", err)
+		return err
+	}
+
+	var portConf pinggyPortConfig
+	err = json.Unmarshal(data, &portConf)
+	if err != nil {
+		logger.Println("Error while parsing: ", err)
+		return err
+	}
+	pl.portConfig = &portConf
+
+	logger.Println(pl.portConfig, string(data))
+
+	return nil
+}
+
+func (pl *pinggyListener) updateUsage(conn net.Conn, bufReader *bufio.Reader) {
+	for {
+		line, _, err := bufReader.ReadLine()
+		if err != nil {
+			conn.Close()
+			pl.updateListener = nil
+			return
+		}
+		str := string(line)
+		if pl.updateListener == nil {
+			break
+		}
+		pl.updateListener.Update(str)
+	}
+
+	conn.Close()
+}
+
+func (pl *pinggyListener) SetUsagesUpdateListener(usageUpdate PinggyUsagesUpdateListener) error {
+	if pl.portConfig == nil {
+		return fmt.Errorf("internal error")
+	}
+	if usageUpdate == nil {
+		pl.updateListener = nil
+		return nil
+	}
+
+	if pl.updateListener != nil {
+		pl.updateListener = usageUpdate
+		return nil
+	}
+
+	conn, err := pl.clientConn.Dial("tcp", fmt.Sprintf("localhost:%d", pl.portConfig.UsageContinuousTcp))
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReader(conn)
+	if reader == nil {
+		conn.Close()
+		return fmt.Errorf("cannot make reader")
+	}
+
+	pl.updateListener = usageUpdate
+
+	go pl.updateUsage(conn, reader)
+
+	return nil
+}
+
+func (pl *pinggyListener) readUsages(port int) (string, error) {
+	conn, err := pl.clientConn.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		return "", err
+	}
+
+	reader := bufio.NewReader(conn)
+	if reader == nil {
+		conn.Close()
+		return "", fmt.Errorf("cannot make reader")
+	}
+
+	line, _, err := reader.ReadLine()
+
+	conn.Close()
+
+	return string(line), err
+}
+
+func (pl *pinggyListener) LongPollUsages() (string, error) {
+	return pl.readUsages(pl.portConfig.UsageOnceLongPollTcp)
+}
+
+func (pl *pinggyListener) GetCurUsages() (string, error) {
+	return pl.readUsages(pl.portConfig.UsageTcp)
+}
 
 func (pl *pinggyListener) getConnectionUrl() []string {
 	logger := pl.conf.Logger
@@ -98,6 +214,7 @@ func (pl *pinggyListener) getConnectionUrl() []string {
 	logger.Println(urls)
 	return urls["urls"]
 }
+
 func (pl *pinggyListener) Accept() (net.Conn, error) {
 	if pl.udpHandler != nil {
 		return nil, fmt.Errorf("not allowed")
@@ -404,6 +521,11 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 			tunnels:     make(map[string]udpTunnel),
 		}
 		go list.udpHandler.startForwarding()
+	}
+
+	err = list.preparePinggyPort()
+	if err != nil {
+		conf.Logger.Println("Something wrong", err)
 	}
 
 	if conf.startSession {
