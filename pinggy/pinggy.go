@@ -217,8 +217,7 @@ type PinggyListener interface {
 	LongPollUsages() (string, error)
 
 	/*
-		This would provide the
-		close the socket.
+		This would provide the current usages without waiting.
 	*/
 	GetCurUsages() (string, error)
 }
