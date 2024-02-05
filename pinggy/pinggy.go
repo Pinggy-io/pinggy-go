@@ -172,8 +172,9 @@ type PinggyListener interface {
 	RemoteUrls() []string
 
 	/*
-		Start webdebugger. This can not be call multiple time. Once the debugger started, it cannot be closed.
-		Also, the debugger is not available in case of `tls` and `tcp` tunnel
+		Start webdebugger. This can not be called more than once.
+		Once the debugger started, it cannot be closed.
+		The webdebugger only available for `http` tunnels.
 	*/
 	InitiateWebDebug(addr string) error
 
@@ -183,36 +184,35 @@ type PinggyListener interface {
 	ServeHttp(fs fs.FS) error
 
 	/*
-		Forward tcp tunnel to this new addr
+		Forward tcp tunnel to this new address.
 	*/
 	UpdateTcpForwarding(addr string) error
 
 	/*
-		Forward tcp tunnel to this new addr
+		Forward tcp tunnel to this new address.
 	*/
 	UpdateUdpForwarding(addr string) error
 
 	/*
-		Start forwarding. It would work only
-		Forwarding address present
+		Start forwarding. It would work only if
+		Forwarding address is present
 	*/
 	StartForwarding() error
 
 	/*
-		Dial a connection to tunnel server. It can be useful get various infomation without starting webdebugger.
+		Dial a connection to tunnel server. It can be useful to get various infomation without starting webdebugger.
 		One can acheive exact same result with a webdebugger as well.
 	*/
 	Dial() (net.Conn, error)
 
 	/*
-		Receive usages update. Server would provide update when it have some. You can set only one update listener.
-
+		Receive usages update. Server would provide updates when it has any. You can set only one update listener.
 		Set update listener with nil to stop listening
 	*/
 	SetUsagesUpdateListener(usagesUpdate PinggyUsagesUpdateListener) error
 
 	/*
-		It would wait till the server have an update. It would provide only one update.
+		It would wait till the server has any update. It would provide only one update.
 	*/
 	LongPollUsages() (string, error)
 
