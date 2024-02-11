@@ -79,7 +79,7 @@ func main() {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	addr := "l:7878" //"t.pinggy.io:443"
+	addr := "a.pinggy.io:443"
 
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {

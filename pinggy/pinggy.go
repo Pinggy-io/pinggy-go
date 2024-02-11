@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"net"
+	"net/url"
 	"time"
 )
 
@@ -152,6 +153,19 @@ type Config struct {
 		Force login.
 	*/
 	Force bool
+
+	/*
+		ServerConnection to be used to setup ssh connection. Proxy configuration
+		won't be effective here.
+
+		Keep it nil unless you know what you are doing.
+	*/
+	ServerConnection net.Conn
+
+	/*
+		Proxy url. it wii be used to connect to the server.
+	*/
+	Proxy *url.URL
 
 	startSession bool
 

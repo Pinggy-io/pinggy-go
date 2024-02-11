@@ -73,21 +73,22 @@ func (pl *pinggyListener) preparePinggyPort() error {
 		return err
 	}
 
+	defer conn.Close()
+
+	conn.Write([]byte("hello"))
 	data, err := io.ReadAll(conn)
 	if err != nil {
 		logger.Println("Could not read: ", err)
-		return err
+		return nil
 	}
 
 	var portConf pinggyPortConfig
 	err = json.Unmarshal(data, &portConf)
 	if err != nil {
 		logger.Println("Error while parsing: ", err)
-		return err
+		return nil
 	}
 	pl.portConfig = &portConf
-
-	logger.Println(pl.portConfig, string(data))
 
 	return nil
 }
@@ -112,8 +113,9 @@ func (pl *pinggyListener) updateUsage(conn net.Conn, bufReader *bufio.Reader) {
 
 func (pl *pinggyListener) SetUsagesUpdateListener(usageUpdate PinggyUsagesUpdateListener) error {
 	if pl.portConfig == nil {
-		return fmt.Errorf("internal error")
+		return fmt.Errorf("pinggy does not support this")
 	}
+
 	if usageUpdate == nil {
 		pl.updateListener = nil
 		return nil
@@ -162,10 +164,18 @@ func (pl *pinggyListener) readUsages(port int) (string, error) {
 }
 
 func (pl *pinggyListener) LongPollUsages() (string, error) {
+	if pl.portConfig == nil {
+		return "", fmt.Errorf("pinggy does not support this")
+	}
+
 	return pl.readUsages(pl.portConfig.UsageOnceLongPollTcp)
 }
 
 func (pl *pinggyListener) GetCurUsages() (string, error) {
+	if pl.portConfig == nil {
+		return "", fmt.Errorf("pinggy does not support this")
+	}
+
 	return pl.readUsages(pl.portConfig.UsageTcp)
 }
 

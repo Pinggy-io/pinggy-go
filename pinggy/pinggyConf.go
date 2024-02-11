@@ -1,10 +1,16 @@
 package pinggy
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -49,6 +55,14 @@ func (conf *Config) verify() {
 	// 	conf.AltType = ""
 	// }
 
+	if conf.UdpForwardingAddr != "" && conf.AltType == "" {
+		conf.AltType = UDP
+	}
+
+	if conf.TcpForwardingAddr != "" && conf.Type == "" {
+		conf.Type = HTTP //this is default behaviour
+	}
+
 	if conf.Type == "" && conf.AltType == "" {
 		conf.Type = HTTP
 	}
@@ -65,6 +79,77 @@ func (conf *Config) verify() {
 		}
 
 		conf.startSession = true
+	}
+}
+
+func dialWithConnectProxy(conf *Config, addr string) (net.Conn, error) {
+	proxyAddr := fmt.Sprintf("%s:%s", conf.Proxy.Hostname(), conf.Proxy.Port())
+	conf.Logger.Println(proxyAddr, addr)
+	conn, err := net.DialTimeout("tcp", proxyAddr, conf.Timeout)
+	if err != nil {
+		return conn, err
+	}
+
+	req, err := http.NewRequest("CONNECT", "", nil)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	req.Host = addr
+
+	userInfo := conf.Proxy.User
+	if userInfo != nil && userInfo.Username() != "" {
+		userPass := userInfo.String()
+		encString := base64.StdEncoding.EncodeToString([]byte(userPass))
+		req.Header.Add("Proxy-Authorization", fmt.Sprintf("basic %s", encString))
+	}
+	w := io.MultiWriter(conn, os.Stderr)
+	err = req.WriteProxy(w)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	buf := make([]byte, 2048)
+	offset := 0
+	for {
+		n, err := conn.Read(buf[offset:])
+		if err != nil {
+			conn.Close()
+			return nil, err
+		}
+		offset += n
+		// log.Println(offset, string(buf), len(string(buf[offset-4:offset])), len(string(buf[offset-2:offset])), err)
+		if offset > 4 && (string(buf[offset-4:offset]) == "\r\n\r\n" || string(buf[offset-2:offset]) == "\n\n") {
+			res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(buf)), req)
+			if err != nil {
+				conn.Close()
+				return nil, err
+			}
+			if res.StatusCode == 200 {
+				return conn, nil
+			}
+			conn.Close()
+			return nil, fmt.Errorf("proxy connection error: status.code: %d", res.StatusCode)
+		}
+	}
+}
+
+func connectToServer(conf *Config, addr string) (net.Conn, error) {
+	if conf.ServerConnection != nil {
+		return conf.ServerConnection, nil
+	}
+
+	if conf.Proxy == nil {
+		return net.DialTimeout("tcp", addr, conf.Timeout)
+	}
+
+	switch conf.Proxy.Scheme {
+	case "http":
+		return dialWithConnectProxy(conf, addr)
+	default:
+		return nil, fmt.Errorf("unknown scheme in proxy address")
 	}
 }
 
@@ -96,7 +181,7 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 	conf.Logger.Printf("Initiating ssh connection %s to server: %s:%d\n", usingToken, conf.Server, conf.port)
 
 	addr := fmt.Sprintf("%s:%d", conf.Server, conf.port)
-	conn, err := net.DialTimeout("tcp", addr, conf.Timeout)
+	conn, err := connectToServer(conf, addr)
 	if err != nil {
 		conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
 		return nil, err
