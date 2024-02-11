@@ -6,11 +6,9 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -84,7 +82,7 @@ func (conf *Config) verify() {
 
 func dialWithConnectProxy(conf *Config, addr string) (net.Conn, error) {
 	proxyAddr := fmt.Sprintf("%s:%s", conf.Proxy.Hostname(), conf.Proxy.Port())
-	conf.Logger.Println(proxyAddr, addr)
+
 	conn, err := net.DialTimeout("tcp", proxyAddr, conf.Timeout)
 	if err != nil {
 		return conn, err
@@ -104,8 +102,8 @@ func dialWithConnectProxy(conf *Config, addr string) (net.Conn, error) {
 		encString := base64.StdEncoding.EncodeToString([]byte(userPass))
 		req.Header.Add("Proxy-Authorization", fmt.Sprintf("basic %s", encString))
 	}
-	w := io.MultiWriter(conn, os.Stderr)
-	err = req.WriteProxy(w)
+
+	err = req.WriteProxy(conn)
 	if err != nil {
 		conn.Close()
 		return nil, err
