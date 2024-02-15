@@ -24,6 +24,13 @@ type pinggyPortConfig struct {
 	UsageOnceLongPollTcp int `json:"UsageOnceLongPollTcp"` // 6
 	UsageTcp             int `json:"UsageTcp"`             //7
 	UrlTcp               int `json:"UrlTcp"`               //8
+	StatusPort           int `json:"StatusPort"`           //12
+}
+
+type connectionStatus struct {
+	Success       bool   `json:"Success"`
+	Authenticated bool   `json:"Authenticated"`
+	Error         string `json:"Error"`
 }
 
 type pinggyListener struct {
@@ -43,6 +50,8 @@ type pinggyListener struct {
 	udpHandler     *packetForwardingHandler
 	portConfig     *pinggyPortConfig
 	updateListener PinggyUsagesUpdateListener
+
+	status connectionStatus
 }
 
 type udpListenerWrapper struct {
@@ -64,10 +73,46 @@ func (ul *udpListenerWrapper) Addr() net.Addr {
 
 // func (pl *pinggyListener) isSocks() bool { return pl.udpChannel && pl.tcpChannel }
 
+func (pl *pinggyListener) checkConnectionStatus() error {
+	if pl.portConfig == nil || pl.portConfig.StatusPort == 0 {
+		// pl.conf.Logger.Println("noport")
+		return nil
+	}
+	// logger := pl.conf.Logger
+	pl.status.Success = false
+	conn, err := pl.clientConn.Dial("tcp", fmt.Sprintf("localhost:%d", pl.portConfig.StatusPort))
+	if err != nil {
+		// logger.Println("Error while localhost:4, ", err)
+		return err
+	}
+
+	defer conn.Close()
+
+	conn.Write([]byte("hello"))
+	data, err := io.ReadAll(conn)
+	if err != nil {
+		// logger.Println("Could not read: ", err)
+		return nil
+	}
+
+	err = json.Unmarshal(data, &pl.status)
+	if err != nil {
+		// logger.Println("Error while parsing: ", err, string(data))
+		return err
+	}
+	if !pl.status.Success {
+		// logger.Println("Could not read: ", pl.status.Error, string(data))
+		return fmt.Errorf(pl.status.Error)
+	}
+	// logger.Println("done")
+	return nil
+}
+
 func (pl *pinggyListener) preparePinggyPort() error {
 	logger := pl.conf.Logger
+	pl.status.Success = true //this is just to makesure old core would not create a problem.
 
-	conn, err := pl.clientConn.Dial("tcp", "localhost:4")
+	conn, err := pl.clientConn.Dial("tcp", "primaryHost:4")
 	if err != nil {
 		logger.Println("Error while localhost:4, ", err)
 		return err
@@ -85,12 +130,13 @@ func (pl *pinggyListener) preparePinggyPort() error {
 	var portConf pinggyPortConfig
 	err = json.Unmarshal(data, &portConf)
 	if err != nil {
-		logger.Println("Error while parsing: ", err)
-		return nil
+		logger.Println("Error while parsing: ", err, len(data), string(data))
+		return err
 	}
+	logger.Println((string(data)))
 	pl.portConfig = &portConf
 
-	return nil
+	return pl.checkConnectionStatus()
 }
 
 func (pl *pinggyListener) updateUsage(conn net.Conn, bufReader *bufio.Reader) {
@@ -482,18 +528,9 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 		return
 	}
 
-	var udpListener net.Listener = listener
-
-	if conf.Type != "" && conf.AltType != "" {
-		socksListener := socks.InitiatateSocks5u(listener)
-		udpListener = &udpListenerWrapper{udpListener: socksListener}
-		listener = socksListener
-		go socksListener.Start()
-	}
-
 	list = &pinggyListener{
 		listener:    listener,
-		udpListener: udpListener,
+		udpListener: listener,
 		clientConn:  clientConn,
 		conf:        &conf,
 		tcpChannel:  conf.Type != "",
@@ -502,6 +539,22 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 
 		tcpDialer: nil,
 		udpDialer: nil,
+	}
+	conf.Logger.Println("Preparing")
+	err = list.preparePinggyPort()
+	if err != nil {
+		conf.Logger.Println("Something wrong", err)
+		return nil, err
+	}
+
+	if conf.Type != "" && conf.AltType != "" {
+		socksListener := socks.InitiatateSocks5u(listener)
+		udpListener := &udpListenerWrapper{udpListener: socksListener}
+		listener = socksListener
+		go socksListener.Start()
+
+		list.listener = listener
+		list.udpListener = udpListener
 	}
 
 	if conf.TcpForwardingAddr != "" {
@@ -531,11 +584,6 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 			tunnels:     make(map[string]udpTunnel),
 		}
 		go list.udpHandler.startForwarding()
-	}
-
-	err = list.preparePinggyPort()
-	if err != nil {
-		conf.Logger.Println("Something wrong", err)
 	}
 
 	if conf.startSession {
