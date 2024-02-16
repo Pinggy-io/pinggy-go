@@ -37,7 +37,7 @@ func (p *pop) Update(line string) {
 
 func main() {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
-	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "t.pinggy.io:443", Token: "noscreen", TcpForwardingAddr: "127.0.0.1:4000"})
+	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "t.pinggy.io:443", Token: "noscreen", TcpForwardingAddr: "127.0.0.1:5001", Type: pinggy.TCP})
 	if err != nil {
 		log.Panicln(err)
 	}

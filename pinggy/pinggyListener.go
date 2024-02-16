@@ -133,7 +133,7 @@ func (pl *pinggyListener) preparePinggyPort() error {
 		logger.Println("Error while parsing: ", err, len(data), string(data))
 		return err
 	}
-	logger.Println((string(data)))
+
 	pl.portConfig = &portConf
 
 	return pl.checkConnectionStatus()
@@ -540,7 +540,7 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 		tcpDialer: nil,
 		udpDialer: nil,
 	}
-	conf.Logger.Println("Preparing")
+
 	err = list.preparePinggyPort()
 	if err != nil {
 		conf.Logger.Println("Something wrong", err)
