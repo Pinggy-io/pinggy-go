@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Pinggy-io/pinggy-go/pinggy"
 )
@@ -37,15 +38,26 @@ func (p *pop) Update(line string) {
 
 func main() {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
-	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "t.pinggy.io:443", Token: "noscreen", TcpForwardingAddr: "127.0.0.1:5001", Type: pinggy.TCP})
+	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "t.pinggy.io:443", Token: "noscreen", TcpForwardingAddr: "127.0.0.1:4000"})
 	if err != nil {
 		log.Panicln(err)
 	}
 	log.Println("Addrs: ", pl.RemoteUrls())
-	// err = pl.InitiateWebDebug("l:3424")
+	err = pl.InitiateWebDebug("l:3424")
 	p := pop{pl, 0}
 	log.Println(err)
 	pl.SetUsagesUpdateListener(&p)
-	fmt.Println(pl.GetCurUsages())
-	pl.StartForwarding()
+	log.Println(pl.GetCurUsages())
+
+	log.Println("Starting forwarding")
+	go pl.StartForwarding()
+
+	log.Println("Waiting for some time")
+	time.Sleep(20 * time.Second)
+
+	log.Println("Closing")
+	pl.Close()
+
+	log.Println("Pl closed")
+	time.Sleep(5 * time.Second)
 }

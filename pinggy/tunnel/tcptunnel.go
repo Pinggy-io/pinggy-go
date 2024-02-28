@@ -73,7 +73,7 @@ func (t *tcpTunnelManager) StartForwarding() {
 	for {
 		err := t.AcceptAndForward()
 		if err != nil {
-			log.Println("Error: could not Accept and forward ", t.dialer.GetAddr().String())
+			log.Println("Error: could not Accept and forward ", t.dialer.GetAddr().String(), err)
 			break
 		}
 	}

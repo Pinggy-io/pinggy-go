@@ -80,7 +80,7 @@ func (pl *pinggyListener) checkConnectionStatus() error {
 	}
 	// logger := pl.conf.Logger
 	pl.status.Success = false
-	conn, err := pl.clientConn.Dial("tcp", fmt.Sprintf("localhost:%d", pl.portConfig.StatusPort))
+	conn, err := pl.DialAddr(fmt.Sprintf("localhost:%d", pl.portConfig.StatusPort))
 	if err != nil {
 		// logger.Println("Error while localhost:4, ", err)
 		return err
@@ -112,7 +112,7 @@ func (pl *pinggyListener) preparePinggyPort() error {
 	logger := pl.conf.Logger
 	pl.status.Success = true //this is just to makesure old core would not create a problem.
 
-	conn, err := pl.clientConn.Dial("tcp", "primaryHost:4")
+	conn, err := pl.DialAddr("primaryHost:4")
 	if err != nil {
 		logger.Println("Error while localhost:4, ", err)
 		return err
@@ -140,10 +140,11 @@ func (pl *pinggyListener) preparePinggyPort() error {
 }
 
 func (pl *pinggyListener) updateUsage(conn net.Conn, bufReader *bufio.Reader) {
+	defer conn.Close()
+	defer pl.conf.Logger.Println("Ended update usages")
 	for {
 		line, _, err := bufReader.ReadLine()
 		if err != nil {
-			conn.Close()
 			pl.updateListener = nil
 			return
 		}
@@ -153,8 +154,6 @@ func (pl *pinggyListener) updateUsage(conn net.Conn, bufReader *bufio.Reader) {
 		}
 		pl.updateListener.Update(str)
 	}
-
-	conn.Close()
 }
 
 func (pl *pinggyListener) SetUsagesUpdateListener(usageUpdate PinggyUsagesUpdateListener) error {
@@ -172,7 +171,7 @@ func (pl *pinggyListener) SetUsagesUpdateListener(usageUpdate PinggyUsagesUpdate
 		return nil
 	}
 
-	conn, err := pl.clientConn.Dial("tcp", fmt.Sprintf("localhost:%d", pl.portConfig.UsageContinuousTcp))
+	conn, err := pl.DialAddr(fmt.Sprintf("localhost:%d", pl.portConfig.UsageContinuousTcp))
 	if err != nil {
 		return err
 	}
@@ -191,7 +190,7 @@ func (pl *pinggyListener) SetUsagesUpdateListener(usageUpdate PinggyUsagesUpdate
 }
 
 func (pl *pinggyListener) readUsages(port int) (string, error) {
-	conn, err := pl.clientConn.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+	conn, err := pl.DialAddr(fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		return "", err
 	}
@@ -228,7 +227,7 @@ func (pl *pinggyListener) GetCurUsages() (string, error) {
 func (pl *pinggyListener) getConnectionUrl() []string {
 	logger := pl.conf.Logger
 
-	conn, err := pl.clientConn.Dial("tcp", "localhost:4300")
+	conn, err := pl.DialAddr("localhost:4300")
 	if err != nil {
 		logger.Println("Error connecting the server:", err)
 		return nil
@@ -284,16 +283,11 @@ func (pl *pinggyListener) Accept() (net.Conn, error) {
 }
 
 func (pl *pinggyListener) Close() error {
-	err := pl.listener.Close()
 	if pl.debugListener != nil {
 		pl.debugListener.Close()
 		pl.debugListener = nil
 	}
-	if pl.session != nil {
-		pl.session.Close()
-		pl.session = nil
-	}
-	pl.clientConn.Close()
+	err := pl.clientConn.Close()
 	return err
 }
 
@@ -330,13 +324,14 @@ func (pl *pinggyListener) InitiateWebDebug(addr string) error {
 		return err
 	}
 	go func() {
+		defer pl.conf.Logger.Println("Web listener close")
 		for {
 			conn, err := webListener.Accept()
 			if err != nil {
 				pl.conf.Logger.Println(err)
 				return
 			}
-			conn2, err := pl.clientConn.Dial("tcp", "localhost:4300")
+			conn2, err := pl.DialAddr("localhost:4300")
 			if err != nil {
 				conn.Close()
 				pl.conf.Logger.Println(err)
@@ -619,10 +614,21 @@ func (pl *pinggyListener) StartForwarding() error {
 	if !forwarding {
 		return fmt.Errorf("nothing to forward")
 	}
+
 	wg.Wait()
 	return nil
 }
 
+func (pl *pinggyListener) DialAddr(addr string) (net.Conn, error) {
+	conn, err := pl.clientConn.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	pconn := pinggyConn{logger: pl.conf.Logger, conn: conn, pl: pl}
+	return &pconn, nil
+}
+
 func (pl *pinggyListener) Dial() (net.Conn, error) {
-	return pl.clientConn.Dial("tcp", "localhost:4300")
+	return pl.DialAddr("localhost:4300")
 }
