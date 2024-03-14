@@ -131,7 +131,7 @@ func (pl *pinggyListener) preparePinggyPort() error {
 	err = json.Unmarshal(data, &portConf)
 	if err != nil {
 		logger.Println("Error while parsing: ", err, len(data), string(data))
-		return err
+		return nil
 	}
 
 	pl.portConfig = &portConf

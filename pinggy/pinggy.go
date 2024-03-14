@@ -33,6 +33,9 @@ type HeaderManipulationInterface interface {
 	RemoveHeaderManipulation(headerName string)
 	ListHeaderManipulations() []byte
 	ReconstructHeaderManipulationDataFromJson([]byte) error
+	SetXFFHeader(xff string)
+	SetHttpsOnly(val bool)
+	SetFullUrl(val bool)
 }
 
 type PinggyHttpHeaderInfo struct {
@@ -74,6 +77,27 @@ type HttpHeaderManipulationAndAuthConfig struct {
 		List of keys for bearer authentication
 	*/
 	BearerAuths map[string]bool `json:"bearerAuths"`
+
+	/*
+		The XFF header name. The server would set the header with value containing
+		original source. It is expected to set X-Forwarded-For header. However, users
+		allowed to use any header they want.
+	*/
+	XFF string `json:"xff"` //header name. empty means not do not set
+
+	/*
+		Enable https only mode. You will keep getting http url. However, those url would redirected to
+		https counter part via 301.
+	*/
+	HttpsOnly bool `json:"httpsOnly"` //All the http would be redirected
+
+	/*
+		In case user wants to know the original url of the request, pinggy can provide the same if user
+		enable this option. Pinggy would add a new header `X-Pinggy-Url` which contains the original
+		url. It may not contain the query string part of the url.
+	*/
+	FullRequestUrl bool `json:"fullRequestUrl"` //Will add X-Pinggy-Url to add entire url
+
 }
 
 type Config struct {
