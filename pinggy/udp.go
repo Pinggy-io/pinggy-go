@@ -2,7 +2,6 @@ package pinggy
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -50,7 +49,7 @@ func (t *udpTunnel) copyToTcp() {
 			lengthBytes := make([]byte, 2)
 			binary.BigEndian.PutUint16(lengthBytes, uint16(n))
 			packet := append(lengthBytes, buffer[:n]...)
-			fmt.Println("Writing ", n+2, "bytes to TCP")
+			// fmt.Println("Writing ", n+2, "bytes to TCP")
 			_, err := t.conn.Write(packet)
 			if err != nil {
 				log.Println("Error")
@@ -83,7 +82,7 @@ func (t *udpTunnel) copyToUdp() {
 			return
 		}
 
-		fmt.Println("Writing ", length, "bytes to UDP")
+		// fmt.Println("Writing ", length, "bytes to UDP")
 
 		if t.closed {
 			return

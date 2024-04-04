@@ -37,7 +37,7 @@ func (c *udpTunnel) copyToTcp() {
 		lengthBytes := make([]byte, 2)
 		binary.BigEndian.PutUint16(lengthBytes, uint16(n))
 		packet := append(lengthBytes, buffer[:n]...)
-		fmt.Println("Writing ", n+2, "bytes to TCP")
+		// fmt.Println("Writing ", n+2, "bytes to TCP")
 		_, err = c.streamConn.Write(packet)
 		if err != nil {
 			log.Println("Error while writing packet to tcp, ", err)
@@ -65,7 +65,7 @@ func (c *udpTunnel) copyToUdp() {
 			break
 		}
 
-		fmt.Println("Writing ", length, "bytes to UDP", c.toAddr.String())
+		// fmt.Println("Writing ", length, "bytes to UDP", c.toAddr.String())
 
 		// Write the data to the TCP connection
 		_, err = c.packetConn.Write(buffer[:length])
@@ -111,7 +111,7 @@ func (t *udpTunnelManager) StartTunnel(streamConn net.Conn) {
 		return
 	}
 	tun := udpTunnel{packetConn: packetConn, streamConn: streamConn, toAddr: t.dialer.GetAddr()}
-	fmt.Println("Fowarding new con")
+	// fmt.Println("Fowarding new con")
 	go tun.copyToTcp()
 	tun.copyToUdp()
 }
@@ -170,6 +170,6 @@ func NewUdpTunnelMangerListen(listeningPort int, forwardAddr string) (TunnelMana
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Listening: ", listeningPort)
+	// fmt.Println("Listening: ", listeningPort)
 	return NewUdpTunnelMangerAddr(listener, udpAddr), nil
 }
