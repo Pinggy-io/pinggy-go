@@ -191,6 +191,8 @@ type Config struct {
 	*/
 	Proxy *url.URL
 
+	sni string
+
 	startSession bool
 
 	port int

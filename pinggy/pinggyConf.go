@@ -19,6 +19,7 @@ func (conf *Config) verify() {
 	if conf.Server == "" {
 		conf.Server = "a.pinggy.io"
 	}
+	conf.sni = "a.pinggy.io"
 	addr := strings.Split(conf.Server, ":")
 	conf.port = 443
 	conf.Server = addr[0]
@@ -185,7 +186,7 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 		return nil, err
 	}
 	if conf.SshOverSsl {
-		tlsConn := tls.Client(conn, &tls.Config{ServerName: conf.Server})
+		tlsConn := tls.Client(conn, &tls.Config{ServerName: conf.sni})
 		err := tlsConn.Handshake()
 		if err != nil {
 			conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
