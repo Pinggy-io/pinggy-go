@@ -460,6 +460,40 @@ paths:
         500:
           description:
             Cannot read the request body
+  /localserverconf:
+    description: Local server configuration
+    get:
+      description: Get currently available configuration
+      responses:
+        200:
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/localServerConf'
+        500:
+          description: Internal error
+    put:
+      description: Setting up new configuration
+      requestBody:
+        description: request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/localServerConf'
+      responses:
+        200:
+          description: Updated configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/localServerConf'
+        400:
+          description:
+            Bad request as content length is 0 or cannot be parsed
+        500:
+          description: Internal error
 
 components:
   schemas:
@@ -770,3 +804,17 @@ components:
         "::ffff:192.168.1.10/100",
         "0.0.0.0/0"
       ]
+    localServerConf:
+      type: object
+      description: Local server configuration. It says if local server running as tls or plain
+      example: {"tlsLocalServer": true, "tlsLocalServerSNI": "myserver.example.com"}
+      properties:
+        tlsLocalServer:
+          type: boolean
+          example: true
+        tlsLocalServerSNI:
+          type: string
+          example: myserver.example.com
+    
+    
+    
