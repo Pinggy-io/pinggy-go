@@ -456,6 +456,15 @@ func (pl *pinggyListener) startSession() error {
 		command += " w:" + ip.String()
 	}
 
+	if pl.conf.ForwardedConnectionConf != nil {
+		if pl.conf.ForwardedConnectionConf.TlsLocalServer {
+			command += " x:localservertls"
+			if pl.conf.ForwardedConnectionConf.TlsLocalServerSNI != "" {
+				command += ":" + pl.conf.ForwardedConnectionConf.TlsLocalServerSNI
+			}
+		}
+	}
+
 	err := pl.initiateSession()
 	if err != nil {
 		return err

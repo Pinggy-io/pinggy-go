@@ -100,6 +100,11 @@ type HttpHeaderManipulationAndAuthConfig struct {
 
 }
 
+type ForwardedConnectionConf struct {
+	TlsLocalServer    bool   `json:"tlsLocalServer"`
+	TlsLocalServerSNI string `json:"tlsLocalServerSNI"`
+}
+
 type Config struct {
 	/*
 		Token is a string. It identify an user. You can find a token at the https://dashboard.pinggy.io.
@@ -151,6 +156,11 @@ type Config struct {
 		IP Whitelist
 	*/
 	IpWhiteList []*net.IPNet
+
+	/*
+		Forwarded local server connection configuration
+	*/
+	ForwardedConnectionConf *ForwardedConnectionConf
 
 	/*
 		Configure Header Manipulation, Basic auth, and Bearer auth for HTTP tunnels.

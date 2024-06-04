@@ -70,6 +70,7 @@ func (conf *Config) verify() {
 	if len(conf.IpWhiteList) > 0 {
 		conf.startSession = true
 	}
+
 	if conf.HeaderManipulationAndAuth != nil {
 		for _, hman := range conf.HeaderManipulationAndAuth.Headers {
 			if strings.ToLower(hman.Key) == "host" {
