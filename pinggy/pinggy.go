@@ -26,22 +26,78 @@ const (
 )
 
 type HttpHeaderManipulationAndAuthConfig interface {
+	/*
+		Add username password for besic authentication.
+		One can add multiple basic authentications without any issues.
+		It can be added along with Bearer authentication.
+	*/
 	AddBasicAuth(username, password string)
+
+	/*
+		Add bearer authention key.
+	*/
 	AddBearerAuth(key string)
+
+	/*
+		Change the Host header in request.
+	*/
 	SetHostname(hostname string)
+
+	/*
+		Add the header name you want to remove from the request header.
+		All the header with the provided name from in coming request header.
+		AddHeader would be effective even after removal or a header.
+	*/
 	RemoveHeader(headerName string) error
+
+	/*
+		New request header. It would add a new header along with exsting.
+	*/
 	AddHeader(headerName, headerValue string) error
+
+	/*
+		This is combination of remove and add header.
+	*/
 	UpdateHeader(headerName, headerValue string) error
+
+	/*
+		Get a json dump of header manipulation
+	*/
 	ListHeaderManipulations() ([]byte, error)
+
+	/*
+		One can reconstract header manipulation from a json.
+	*/
 	ReconstructHeaderManipulationDataFromJson([]byte) error
+
+	/*
+		Set XFF header name that would be added to request header.
+		It would contain original source address.
+	*/
 	SetXFFHeader(xff string)
+
+	/*
+		Set X-Forwarded-For header in the request.
+	*/
 	SetXFF()
+
+	/*
+		No http request would be allowed on this tunnel. http requests would be
+		redirected qith 301 status.
+	*/
 	SetHttpsOnly(val bool)
+
+	/*
+		Pinggy would pass original url in the X-Pinggy-Url request header
+	*/
 	SetFullUrl(val bool)
 }
 
 type ForwardedConnectionConf struct {
-	TlsLocalServer    bool   `json:"tlsLocalServer"`
+	// Whether or not local server tls
+	TlsLocalServer bool `json:"tlsLocalServer"`
+
+	// What is the SNI to be used in case of local server TLS
 	TlsLocalServerSNI string `json:"tlsLocalServerSNI"`
 }
 
