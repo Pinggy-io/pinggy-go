@@ -50,10 +50,6 @@ func (conf *Config) verify() {
 		conf.AltType = ""
 	}
 
-	// if conf.Type != "" && conf.AltType != "" {
-	// 	conf.AltType = ""
-	// }
-
 	if conf.UdpForwardingAddr != "" && conf.AltType == "" {
 		conf.AltType = UDP
 	}
@@ -72,12 +68,10 @@ func (conf *Config) verify() {
 	}
 
 	if conf.HeaderManipulationAndAuth != nil {
-		for _, hman := range conf.HeaderManipulationAndAuth.Headers {
-			if strings.ToLower(hman.Key) == "host" {
-				conf.Logger.Fatalln("host header is not allowed here")
-			}
-		}
+		conf.startSession = true
+	}
 
+	if conf.ForwardedConnectionConf != nil && conf.ForwardedConnectionConf.TlsLocalServer {
 		conf.startSession = true
 	}
 }

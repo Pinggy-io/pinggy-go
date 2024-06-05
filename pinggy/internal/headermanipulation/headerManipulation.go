@@ -1,10 +1,27 @@
-package pinggy
+package headermanipulation
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
+
+type PinggyHttpHeaderInfo struct {
+	Key       string   `json:"headerName"`
+	Remove    bool     `json:"remove"`
+	NewValues []string `json:"values"`
+}
+
+type HttpHeaderManipulationAndAuthConfig struct {
+	HostName       string                           `json:"hostName"`
+	Headers        map[string]*PinggyHttpHeaderInfo `json:"headers"`
+	BasicAuths     map[string]bool                  `json:"basicAuths"`
+	BearerAuths    map[string]bool                  `json:"bearerAuths"`
+	XFF            string                           `json:"xff"`            //header name. empty means not do not set
+	HttpsOnly      bool                             `json:"httpsOnly"`      //All the http would be redirected
+	FullRequestUrl bool                             `json:"fullRequestUrl"` //Will add X-Pinggy-Url to add entire url
+}
 
 /*
 New HeaderManipulationAndConfig struct. This is a safe way create the object
@@ -91,4 +108,53 @@ func (hmd *HttpHeaderManipulationAndAuthConfig) UpdateHeader(headerName, headerV
 	value.NewValues = append(value.NewValues, headerValue)
 	value.Remove = true
 	return nil
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) ListHeaderManipulations() ([]byte, error) {
+	values := hmd
+	jb, err := json.Marshal(values)
+	if err != nil {
+		return nil, err
+	}
+	return jb, nil
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) ReconstructHeaderManipulationDataFromJson(jsondata []byte) error {
+	newHmd := HttpHeaderManipulationAndAuthConfig{}
+	err := json.Unmarshal(jsondata, &newHmd)
+	if err != nil {
+		return err
+	}
+
+	hmd.HostName = newHmd.HostName
+	hmd.Headers = make(map[string]*PinggyHttpHeaderInfo)
+	for key, hi := range newHmd.Headers {
+		headerLower := strings.ToLower(key)
+		if headerLower == "host" {
+			continue
+		}
+		hmd.Headers[headerLower] = hi
+	}
+	hmd.BasicAuths = newHmd.BasicAuths
+	hmd.BearerAuths = newHmd.BearerAuths
+	hmd.FullRequestUrl = newHmd.FullRequestUrl
+	hmd.XFF = newHmd.XFF
+	hmd.HttpsOnly = newHmd.HttpsOnly
+	return nil
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetXFFHeader(xff string) {
+	hmd.XFF = xff
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetXFF() {
+	hmd.XFF = "X-Forwarded-For"
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetHttpsOnly(val bool) {
+	hmd.HttpsOnly = true
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetFullUrl(val bool) {
+	hmd.FullRequestUrl = true
 }
