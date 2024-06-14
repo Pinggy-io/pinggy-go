@@ -34,6 +34,9 @@ func (c *udpTunnel) copyToTcp() {
 		if n <= 0 {
 			break
 		}
+		if n >= (len(buffer) - 2) {
+			continue //ignoring frame size more than 2045
+		}
 		lengthBytes := make([]byte, 2)
 		binary.BigEndian.PutUint16(lengthBytes, uint16(n))
 		packet := append(lengthBytes, buffer[:n]...)
