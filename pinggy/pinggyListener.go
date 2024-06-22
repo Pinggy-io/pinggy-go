@@ -305,6 +305,7 @@ func (pl *pinggyListener) InitiateWebDebug(addr string) error {
 	if pl.conf.Type != HTTP {
 		return fmt.Errorf("webDebugging is available only with %v mode", HTTP)
 	}
+	// Start the session
 	if pl.session == nil {
 		err := pl.initiateSession()
 		if err != nil {
@@ -316,6 +317,11 @@ func (pl *pinggyListener) InitiateWebDebug(addr string) error {
 			return err
 		}
 	}
+	// Start forwarding debugger requests
+	return pl.InitiateDebugForward(addr)
+}
+
+func (pl *pinggyListener) InitiateDebugForward(addr string) error {
 	if pl.debugListener != nil {
 		return fmt.Errorf("webDebugging is already running at %v", pl.debugListener.Addr().String())
 	}

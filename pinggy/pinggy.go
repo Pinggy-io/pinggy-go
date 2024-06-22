@@ -225,6 +225,12 @@ type PinggyListener interface {
 	InitiateWebDebug(addr string) error
 
 	/*
+		Start forwarding requests to webdebugger port without starting debug session.
+		Useful for gettin the URLs, IP whitelists of TCP / UDP tunnels.
+	*/
+	InitiateDebugForward(addr string) error
+
+	/*
 		Start a webserver.
 	*/
 	ServeHttp(fs fs.FS) error
