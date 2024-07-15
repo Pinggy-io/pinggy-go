@@ -44,6 +44,11 @@ type HttpHeaderManipulationAndAuthConfig interface {
 	SetHostname(hostname string)
 
 	/*
+		Get Host modified header value.
+	*/
+	GetHostname() string
+
+	/*
 		Add the header name you want to remove from the request header.
 		All the header with the provided name from in coming request header.
 		AddHeader would be effective even after removal or a header.
@@ -99,6 +104,28 @@ type HttpHeaderManipulationAndAuthConfig interface {
 		Enabling this option will make Pinggy allow CORS preflight requests to pass through
 	*/
 	SetPassPreflight(val bool)
+
+	/*
+		Enable reverse proxy mode. Pass the upstream server hostname. Eg. localhost:5000 or example.com
+		This enables X-Forwarded-Host, X-Forwarded-Proto, and Forwarded headers.
+		It also manipulates Host header and SNI in case of TLS.
+	*/
+	SetReverseProxy(hostname string)
+
+	/*
+		Set X-Forwarded-Host header in the requests. We recommend using SetReverseProxy instead.
+	*/
+	SetXFH(val bool)
+
+	/*
+		Set X-Forwarded-Proto header in the requests.  We recommend using SetReverseProxy instead.
+	*/
+	SetXFP(val bool)
+
+	/*
+		Set Forwarded header in the requests.  We recommend using SetReverseProxy instead.
+	*/
+	SetForwarded(val bool)
 }
 
 type ForwardedConnectionConf struct {

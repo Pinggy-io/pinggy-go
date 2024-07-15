@@ -465,8 +465,19 @@ func (pl *pinggyListener) startSession() error {
 	if pl.conf.ForwardedConnectionConf != nil {
 		if pl.conf.ForwardedConnectionConf.TlsLocalServer {
 			command += " x:localservertls"
+			// If explicit SNI is set, always use that, otherwise set the modified hostname
 			if pl.conf.ForwardedConnectionConf.TlsLocalServerSNI != "" {
 				command += ":" + pl.conf.ForwardedConnectionConf.TlsLocalServerSNI
+			} else {
+				// If modified hostname is set, use that
+				if pl.conf.HeaderManipulationAndAuth.GetHostname() != "" {
+					hostwithport := pl.conf.HeaderManipulationAndAuth.GetHostname()
+					hostname, _, err := net.SplitHostPort(hostwithport)
+					if err != nil {
+						hostname = hostwithport
+					}
+					command += ":" + hostname
+				}
 			}
 		}
 	}
