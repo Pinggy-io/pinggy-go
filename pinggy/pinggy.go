@@ -91,6 +91,14 @@ type HttpHeaderManipulationAndAuthConfig interface {
 		Pinggy would pass original url in the X-Pinggy-Url request header
 	*/
 	SetFullUrl(val bool)
+
+	/*
+		By default, enabling key authentication / password authentication will block
+		all unauthenticated requests to Pinggy URLs. But sometimes the CORS preflight
+		requests are required to be sent through to enable CORS.
+		Enabling this option will make Pinggy allow CORS preflight requests to pass through
+	*/
+	SetPassPreflight(val bool)
 }
 
 type ForwardedConnectionConf struct {

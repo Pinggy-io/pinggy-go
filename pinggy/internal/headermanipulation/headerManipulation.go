@@ -21,6 +21,7 @@ type HttpHeaderManipulationAndAuthConfig struct {
 	XFF            string                           `json:"xff"`            //header name. empty means not do not set
 	HttpsOnly      bool                             `json:"httpsOnly"`      //All the http would be redirected
 	FullRequestUrl bool                             `json:"fullRequestUrl"` //Will add X-Pinggy-Url to add entire url
+	PassPreflight  bool                             `json:"allowPreflight"` //Allow CORS Preflight URL through auth
 }
 
 /*
@@ -140,6 +141,7 @@ func (hmd *HttpHeaderManipulationAndAuthConfig) ReconstructHeaderManipulationDat
 	hmd.FullRequestUrl = newHmd.FullRequestUrl
 	hmd.XFF = newHmd.XFF
 	hmd.HttpsOnly = newHmd.HttpsOnly
+	hmd.PassPreflight = newHmd.PassPreflight
 	return nil
 }
 
@@ -152,9 +154,13 @@ func (hmd *HttpHeaderManipulationAndAuthConfig) SetXFF() {
 }
 
 func (hmd *HttpHeaderManipulationAndAuthConfig) SetHttpsOnly(val bool) {
-	hmd.HttpsOnly = true
+	hmd.HttpsOnly = val
 }
 
 func (hmd *HttpHeaderManipulationAndAuthConfig) SetFullUrl(val bool) {
-	hmd.FullRequestUrl = true
+	hmd.FullRequestUrl = val
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetPassPreflight(val bool) {
+	hmd.PassPreflight = val
 }
