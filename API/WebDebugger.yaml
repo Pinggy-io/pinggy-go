@@ -772,6 +772,22 @@ components:
             Additional headername to pass the original source IP address. If you set xff = X-Forward-For-Pinggy, pinggy would add a extra header call X-Forwarded-For-Pinggy where the value is a the originating IP address for the request.
           example:
             X-Forwarded-For-Pinggy
+        xfh:
+          type: boolean
+          description:
+            Request to pass the original host header value via X-Forwarded-Host
+        xfp:
+          type: boolean
+          description:
+            Request to pass the original protocol value via X-Forwarded-Proto
+        forwarded:
+          type: boolean
+          description:
+            Add forwarded header for reverse proxy. Check https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded
+        allowPreflight:
+          type: boolean
+          description:
+            Preflight requests are made by the browser. User will never have any control over it. It does not include use defined header or auth tokens. However, failing to pass these requests to original server might cause problem to the application. This parameter tells pinggy to pass preflight request without modification.
         httpsOnly:
           type: boolean
           description:
@@ -815,6 +831,6 @@ components:
         tlsLocalServerSNI:
           type: string
           example: myserver.example.com
-    
-    
-    
+
+
+
