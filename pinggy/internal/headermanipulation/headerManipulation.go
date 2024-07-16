@@ -22,6 +22,9 @@ type HttpHeaderManipulationAndAuthConfig struct {
 	HttpsOnly      bool                             `json:"httpsOnly"`      //All the http would be redirected
 	FullRequestUrl bool                             `json:"fullRequestUrl"` //Will add X-Pinggy-Url to add entire url
 	PassPreflight  bool                             `json:"allowPreflight"` //Allow CORS Preflight URL through auth
+	XFH            bool                             `json:"xfh"`
+	XFP            bool                             `json:"xfp"`
+	Forwarded      bool                             `json:"forwarded"`
 }
 
 /*
@@ -58,6 +61,13 @@ Set hostname.
 */
 func (hmd *HttpHeaderManipulationAndAuthConfig) SetHostname(hostname string) {
 	hmd.HostName = strings.ToLower(hostname)
+}
+
+/*
+Get hostname.
+*/
+func (hmd *HttpHeaderManipulationAndAuthConfig) GetHostname() string {
+	return hmd.HostName
 }
 
 func (hmd *HttpHeaderManipulationAndAuthConfig) getValue(headerName string) (*PinggyHttpHeaderInfo, error) {
@@ -142,6 +152,9 @@ func (hmd *HttpHeaderManipulationAndAuthConfig) ReconstructHeaderManipulationDat
 	hmd.XFF = newHmd.XFF
 	hmd.HttpsOnly = newHmd.HttpsOnly
 	hmd.PassPreflight = newHmd.PassPreflight
+	hmd.XFH = newHmd.XFH
+	hmd.XFP = newHmd.XFP
+	hmd.Forwarded = newHmd.Forwarded
 	return nil
 }
 
@@ -163,4 +176,24 @@ func (hmd *HttpHeaderManipulationAndAuthConfig) SetFullUrl(val bool) {
 
 func (hmd *HttpHeaderManipulationAndAuthConfig) SetPassPreflight(val bool) {
 	hmd.PassPreflight = val
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetXFH(val bool) {
+	hmd.XFH = val
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetXFP(val bool) {
+	hmd.XFP = val
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetForwarded(val bool) {
+	hmd.Forwarded = val
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetReverseProxy(hostname string) {
+	hmd.SetXFF()
+	hmd.SetXFH(true)
+	hmd.SetXFP(true)
+	hmd.SetForwarded(true)
+	hmd.SetHostname(hostname)
 }
