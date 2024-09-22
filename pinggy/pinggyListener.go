@@ -78,11 +78,11 @@ func (pl *pinggyListener) checkConnectionStatus() error {
 		// pl.conf.Logger.Println("noport")
 		return nil
 	}
-	// logger := pl.conf.Logger
+	logger := pl.conf.Logger
 	pl.status.Success = false
 	conn, err := pl.DialAddr(fmt.Sprintf("localhost:%d", pl.portConfig.StatusPort))
 	if err != nil {
-		// logger.Println("Error while localhost:4, ", err)
+		logger.Printf("Error while localhost:%d, %v\n", pl.portConfig.StatusPort, err)
 		return err
 	}
 
@@ -224,31 +224,31 @@ func (pl *pinggyListener) GetCurUsages() (string, error) {
 	return pl.readUsages(pl.portConfig.UsageTcp)
 }
 
-func (pl *pinggyListener) getConnectionUrl() []string {
+func (pl *pinggyListener) getConnectionUrl() ([]string, error) {
 	logger := pl.conf.Logger
 
 	conn, err := pl.DialAddr("localhost:4300")
 	if err != nil {
 		logger.Println("Error connecting the server:", err)
-		return nil
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", "http://localhost:4300/urls", nil)
 	if err != nil {
 		logger.Println("Error creating request:", err)
-		return nil
+		return nil, err
 	}
 	err = req.Write(conn)
 	if err != nil {
 		logger.Println("Error sending request:", err)
-		return nil
+		return nil, err
 	}
 
 	// Read the HTTP response
 	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
 	if err != nil {
 		logger.Println("Error reading response:", err)
-		return nil
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -256,7 +256,7 @@ func (pl *pinggyListener) getConnectionUrl() []string {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Println("Error reading body:", err)
-		return nil
+		return nil, err
 	}
 
 	urls := make(map[string][]string)
@@ -264,10 +264,10 @@ func (pl *pinggyListener) getConnectionUrl() []string {
 
 	if err != nil {
 		logger.Println("Error parsing body:", err)
-		return nil
+		return nil, err
 	}
 	logger.Println(urls)
-	return urls["urls"]
+	return urls["urls"], nil
 }
 
 func (pl *pinggyListener) Accept() (net.Conn, error) {
@@ -294,11 +294,15 @@ func (pl *pinggyListener) Close() error {
 func (pl *pinggyListener) Addr() net.Addr { return pl.listener.Addr() }
 
 func (pl *pinggyListener) RemoteUrls() []string {
-	urls := pl.getConnectionUrl()
+	urls, _ := pl.getConnectionUrl()
 	if urls == nil {
 		return make([]string, 0)
 	}
 	return urls
+}
+
+func (pl *pinggyListener) RemoteUrls2() ([]string, error) {
+	return pl.getConnectionUrl()
 }
 
 func (pl *pinggyListener) InitiateWebDebug(addr string) error {
@@ -564,8 +568,10 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 
 	err = list.preparePinggyPort()
 	if err != nil {
-		conf.Logger.Println("Something wrong", err)
-		return nil, err
+		conf.Logger.Println("Something wrong:", err)
+		list.Close()
+		list = nil
+		return
 	}
 
 	if conf.Type != "" && conf.AltType != "" {
@@ -582,7 +588,8 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 		var addr *net.TCPAddr = nil
 		addr, err = net.ResolveTCPAddr("tcp", conf.TcpForwardingAddr)
 		if err != nil {
-			list.clientConn.Close()
+			list.Close()
+			list = nil
 			return
 		}
 		list.tcpDialer = tunnel.NewTcpDialer(addr)
@@ -592,7 +599,8 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 		var addr *net.UDPAddr = nil
 		addr, err = net.ResolveUDPAddr("udp", conf.UdpForwardingAddr)
 		if err != nil {
-			list.clientConn.Close()
+			list.Close()
+			list = nil
 			return
 		}
 		list.udpDialer = tunnel.NewUdpDialer(addr)
@@ -609,7 +617,10 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 
 	if conf.startSession {
 		err = list.startSession()
-		return
+		if err != nil {
+			list.Close()
+			list = nil
+		}
 	}
 
 	return

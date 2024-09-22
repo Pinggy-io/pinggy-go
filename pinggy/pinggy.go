@@ -214,6 +214,12 @@ type Config struct {
 	// A Timeout of zero means no timeout.
 	Timeout time.Duration
 
+	// SshTimeout is the maximum amount of time allowed for SSH to complete the handshake.
+	// It includes the time required for ssl to established in case of ssh-over-ssh.
+	//
+	// A SshTimeout of zero means no timeout.
+	SshTimeout time.Duration
+
 	/*
 		Force login.
 	*/
@@ -251,6 +257,7 @@ type PinggyListener interface {
 		Return the remote urls to access the tunnels.
 	*/
 	RemoteUrls() []string
+	RemoteUrls2() ([]string, error)
 
 	/*
 		Start webdebugger. This can not be called more than once.
