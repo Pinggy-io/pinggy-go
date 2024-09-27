@@ -19,12 +19,13 @@ import (
 
 // {"ConfigTcp":4,"UrlTcp":8,"UsageContinuousTcp":5,"UsageOnceLongPollTcp":6,"UsageTcp":7}
 type pinggyPortConfig struct {
-	ConfigTcp            int `json:"ConfigTcp"`            //4
-	UsageContinuousTcp   int `json:"UsageContinuousTcp"`   // 5
-	UsageOnceLongPollTcp int `json:"UsageOnceLongPollTcp"` // 6
-	UsageTcp             int `json:"UsageTcp"`             //7
-	UrlTcp               int `json:"UrlTcp"`               //8
-	StatusPort           int `json:"StatusPort"`           //12
+	ConfigTcp            int `json:"ConfigTcp"`            // 04
+	UsageContinuousTcp   int `json:"UsageContinuousTcp"`   // 05
+	UsageOnceLongPollTcp int `json:"UsageOnceLongPollTcp"` // 06
+	UsageTcp             int `json:"UsageTcp"`             // 07
+	UrlTcp               int `json:"UrlTcp"`               // 08
+	StatusPort           int `json:"StatusPort"`           // 12
+	GreetingMsgTCPPort   int `json:"GreetingMsgTCP"`       // 13
 }
 
 type connectionStatus struct {
@@ -210,7 +211,7 @@ func (pl *pinggyListener) readUsages(port int) (string, error) {
 
 func (pl *pinggyListener) LongPollUsages() (string, error) {
 	if pl.portConfig == nil {
-		return "", fmt.Errorf("pinggy does not support this")
+		return "", fmt.Errorf("pinggy does not support this yet")
 	}
 
 	return pl.readUsages(pl.portConfig.UsageOnceLongPollTcp)
@@ -218,10 +219,46 @@ func (pl *pinggyListener) LongPollUsages() (string, error) {
 
 func (pl *pinggyListener) GetCurUsages() (string, error) {
 	if pl.portConfig == nil {
-		return "", fmt.Errorf("pinggy does not support this")
+		return "", fmt.Errorf("pinggy does not support this yet")
 	}
 
 	return pl.readUsages(pl.portConfig.UsageTcp)
+}
+
+func (pl *pinggyListener) GetGreetingMsg() ([]string, error) {
+	if pl.portConfig == nil {
+		return nil, fmt.Errorf("pinggy does not support this yet")
+	}
+
+	if pl.portConfig.GreetingMsgTCPPort <= 0 {
+		return nil, fmt.Errorf("pinggy does not support this yet")
+	}
+
+	conn, err := pl.DialAddr(fmt.Sprintf("localhost:%d", pl.portConfig.GreetingMsgTCPPort))
+	if err != nil {
+		return nil, err
+	}
+
+	bytes := make([]byte, 2048)
+
+	len, err := conn.Read(bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	type grMsg struct {
+		Msgs []string
+	}
+	var msgs grMsg
+
+	err = json.Unmarshal(bytes[:len], &msgs)
+	if err != nil {
+		return nil, err
+	}
+
+	conn.Close()
+
+	return msgs.Msgs, err
 }
 
 func (pl *pinggyListener) getConnectionUrl() ([]string, error) {

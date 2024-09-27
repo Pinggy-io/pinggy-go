@@ -314,6 +314,11 @@ type PinggyListener interface {
 		This would provide the current usages without waiting.
 	*/
 	GetCurUsages() (string, error)
+
+	/*
+		This would provide the greeting msg. Not usefull most of the cases
+	*/
+	GetGreetingMsg() ([]string, error)
 }
 
 /*
