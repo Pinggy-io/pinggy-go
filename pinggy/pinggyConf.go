@@ -183,6 +183,7 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 		return nil, err
 	}
 
+	// Try to connect with a timeout. context is used for timeout.
 	ctx := context.Background()
 	if conf.SshTimeout > 0 {
 		var cancel context.CancelFunc
@@ -213,8 +214,15 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 			return
 		}
 
-		sshClient = ssh.NewClient(c, chans, reqs)
 		if atomic.LoadInt32(&timerExpired) == 1 {
+			// timeout has happened do not proceed
+			return
+		}
+
+		sshClient = ssh.NewClient(c, chans, reqs)
+
+		if atomic.LoadInt32(&timerExpired) == 1 {
+			// timeout has happened do not proceed
 			sshClient.Close()
 		}
 		resultChan <- nil

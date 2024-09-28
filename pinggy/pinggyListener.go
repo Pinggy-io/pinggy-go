@@ -241,7 +241,7 @@ func (pl *pinggyListener) GetGreetingMsg() ([]string, error) {
 
 	bytes := make([]byte, 2048)
 
-	len, err := conn.Read(bytes)
+	len, err := readAll(conn, bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -705,4 +705,25 @@ func (pl *pinggyListener) DialAddr(addr string) (net.Conn, error) {
 
 func (pl *pinggyListener) Dial() (net.Conn, error) {
 	return pl.DialAddr("localhost:4300")
+}
+
+func readAll(conn net.Conn, buffer []byte) (int, error) {
+	totalRead := 0
+
+	for {
+		n, err := conn.Read(buffer[totalRead:])
+		if err != nil {
+			if err == io.EOF {
+				break // Connection closed, stop reading
+			}
+			return totalRead, err // An error occurred
+		}
+
+		totalRead += n
+		if totalRead >= len(buffer) {
+			break // Stop if the buffer is full
+		}
+	}
+
+	return totalRead, nil
 }
