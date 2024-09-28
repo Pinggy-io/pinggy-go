@@ -3,6 +3,7 @@ package pinggy
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -180,19 +182,61 @@ func dialWithConfig(conf *Config) (*ssh.Client, error) {
 		conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
 		return nil, err
 	}
-	if conf.SshOverSsl {
-		tlsConn := tls.Client(conn, &tls.Config{ServerName: conf.sni})
-		err := tlsConn.Handshake()
-		if err != nil {
-			conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
-			return nil, err
-		}
-		conn = tlsConn
-	}
-	c, chans, reqs, err := ssh.NewClientConn(conn, addr, clientConfig)
-	if err != nil {
-		return nil, err
+
+	// Try to connect with a timeout. context is used for timeout.
+	ctx := context.Background()
+	if conf.SshTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, conf.SshTimeout)
+		defer cancel()
 	}
 
-	return ssh.NewClient(c, chans, reqs), nil
+	var timerExpired int32 = 0 // atomic flag to track timeout
+
+	resultChan := make(chan error, 1)
+	var sshClient *ssh.Client = nil
+	go func() {
+		if conf.SshOverSsl {
+			tlsConn := tls.Client(conn, &tls.Config{ServerName: conf.sni})
+			err := tlsConn.Handshake()
+			if err != nil {
+				conf.Logger.Printf("Error in ssh connection initiation: %v\n", err)
+				conn.Close()
+				resultChan <- err
+				return
+			}
+			conn = tlsConn
+		}
+		c, chans, reqs, err := ssh.NewClientConn(conn, addr, clientConfig)
+		if err != nil {
+			conn.Close()
+			resultChan <- err
+			return
+		}
+
+		if atomic.LoadInt32(&timerExpired) == 1 {
+			// timeout has happened do not proceed
+			return
+		}
+
+		sshClient = ssh.NewClient(c, chans, reqs)
+
+		if atomic.LoadInt32(&timerExpired) == 1 {
+			// timeout has happened do not proceed
+			sshClient.Close()
+		}
+		resultChan <- nil
+	}()
+
+	select {
+	case <-ctx.Done():
+		atomic.StoreInt32(&timerExpired, 1)
+		return nil, fmt.Errorf("failed to complete ssh handshake after %d seconds", int(conf.SshTimeout.Seconds()))
+	case err := <-resultChan:
+		if err != nil {
+			return nil, err // dialer error
+		}
+	}
+
+	return sshClient, nil
 }
