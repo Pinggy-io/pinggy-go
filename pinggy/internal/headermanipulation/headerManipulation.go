@@ -31,11 +31,18 @@ type HttpHeaderManipulationAndAuthConfig struct {
 New HeaderManipulationAndConfig struct. This is a safe way create the object
 */
 func NewHeaderManipulationAndAuthConfig() *HttpHeaderManipulationAndAuthConfig {
-	return &HttpHeaderManipulationAndAuthConfig{
+	hmd := &HttpHeaderManipulationAndAuthConfig{
 		Headers:     map[string]*PinggyHttpHeaderInfo{},
 		BasicAuths:  make(map[string]bool),
 		BearerAuths: make(map[string]bool),
 	}
+
+	hmd.SetXFF()
+	hmd.SetXFH(true)
+	hmd.SetXFP(true)
+	hmd.SetForwarded(true)
+
+	return hmd
 }
 
 /*
@@ -196,4 +203,11 @@ func (hmd *HttpHeaderManipulationAndAuthConfig) SetReverseProxy(hostname string)
 	hmd.SetXFP(true)
 	hmd.SetForwarded(true)
 	hmd.SetHostname(hostname)
+}
+
+func (hmd *HttpHeaderManipulationAndAuthConfig) SetNoReverseProxy() {
+	hmd.SetXFFHeader("")
+	hmd.SetXFH(false)
+	hmd.SetXFP(false)
+	hmd.SetForwarded(false)
 }

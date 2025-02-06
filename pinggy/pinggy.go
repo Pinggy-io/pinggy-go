@@ -113,6 +113,13 @@ type HttpHeaderManipulationAndAuthConfig interface {
 	SetReverseProxy(hostname string)
 
 	/*
+		Enable reverse proxy mode. Pass the upstream server hostname. Eg. localhost:5000 or example.com
+		This enables X-Forwarded-Host, X-Forwarded-Proto, and Forwarded headers.
+		It also manipulates Host header and SNI in case of TLS.
+	*/
+	SetNoReverseProxy()
+
+	/*
 		Set X-Forwarded-Host header in the requests. We recommend using SetReverseProxy instead.
 	*/
 	SetXFH(val bool)
