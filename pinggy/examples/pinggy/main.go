@@ -28,7 +28,7 @@ func setupCopyFile(conn net.Conn) {
 func main() {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
 	// pinggy.ServeFileWithConfig(pinggy.FileServerConfi?g{Path: "/tmp/", Conf: pinggy.Config{Type: pinggy.HTTP}, WebDebugEnabled: true})
-	pl, err := pinggy.ConnectWithConfig(pinggy.Config{})
+	pl, err := pinggy.ConnectWithConfig(pinggy.Config{Server: "t.pinggy.io:443"})
 	if err != nil {
 		log.Fatal(err)
 	}
