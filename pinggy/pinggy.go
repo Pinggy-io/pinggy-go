@@ -301,6 +301,19 @@ type PinggyListener interface {
 	StartForwarding() error
 
 	/*
+		Start additional forwarding. It would work only with
+		http tunnel.
+
+		domain needs to be valid domain for the given tunnel.
+	*/
+	AddAdditionalForwarding(domain, addr string) error
+
+	/*
+		Update additional forwarding.
+	*/
+	UpdateAdditionalForwarding(domain, addr string) error
+
+	/*
 		Dial a connection to tunnel server. It can be useful to get various infomation without starting webdebugger.
 		One can acheive exact same result with a webdebugger as well.
 	*/
