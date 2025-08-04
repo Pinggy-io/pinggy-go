@@ -306,7 +306,7 @@ type PinggyListener interface {
 
 		domain needs to be valid domain for the given tunnel.
 	*/
-	AddAdditionalForwarding(domain, addr string) error
+	StartAdditionalForwarding(domain, addr string) error
 
 	/*
 		Update additional forwarding.

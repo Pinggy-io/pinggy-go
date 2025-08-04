@@ -15,7 +15,7 @@ func main() {
 	log.Println("Addrs: ", pl.RemoteUrls())
 	err = pl.InitiateWebDebug("l:3424")
 	log.Println(err)
-	pl.AddAdditionalForwarding("<domain>", "localhost:8080")
+	pl.StartAdditionalForwarding("<domain>", "localhost:8080")
 	pl.StartForwarding()
 	// _, err = pl.Accept()
 	// log.Println(err)

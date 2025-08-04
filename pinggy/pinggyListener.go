@@ -698,7 +698,7 @@ func (pl *pinggyListener) StartForwarding() error {
 }
 
 // additionalForwarding is used to add additional forwarding for the given domain
-func (pl *pinggyListener) AddAdditionalForwarding(domain, addr string) error {
+func (pl *pinggyListener) StartAdditionalForwarding(domain, addr string) error {
 	if pl.conf.Type != HTTP {
 		return fmt.Errorf("additional forwarding is available only with %v mode", HTTP)
 	}
