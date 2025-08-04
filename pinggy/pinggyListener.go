@@ -52,6 +52,8 @@ type pinggyListener struct {
 	portConfig     *pinggyPortConfig
 	updateListener PinggyUsagesUpdateListener
 
+	additionalForwardings map[string]tunnel.TunnelManager
+
 	status connectionStatus
 }
 
@@ -601,6 +603,8 @@ func setupPinggyTunnel(conf Config) (list *pinggyListener, err error) {
 
 		tcpDialer: nil,
 		udpDialer: nil,
+
+		additionalForwardings: map[string]tunnel.TunnelManager{},
 	}
 
 	err = list.preparePinggyPort()
@@ -690,6 +694,55 @@ func (pl *pinggyListener) StartForwarding() error {
 	}
 
 	wg.Wait()
+	return nil
+}
+
+// additionalForwarding is used to add additional forwarding for the given domain
+func (pl *pinggyListener) AddAdditionalForwarding(domain, addr string) error {
+	if pl.conf.Type != HTTP {
+		return fmt.Errorf("additional forwarding is available only with %v mode", HTTP)
+	}
+	if pl.conf.AltType != "" {
+		return fmt.Errorf("additional forwarding is not available with %v mode", pl.conf.AltType)
+	}
+	if domain == "" || addr == "" {
+		return fmt.Errorf("domain and address cannot be empty")
+	}
+	host, port, err := net.SplitHostPort(domain)
+	if err != nil {
+		host = domain
+		port = "0"
+	}
+	listener, err := pl.clientConn.Listen("tcp", net.JoinHostPort(host, port))
+	if err != nil {
+		return err
+	}
+
+	tcpTunnelMan, err := tunnel.NewTcpTunnelManger(listener, addr)
+	if err != nil {
+		return err
+	}
+
+	go tcpTunnelMan.StartForwarding()
+
+	pl.additionalForwardings[domain] = tcpTunnelMan
+
+	return nil
+}
+
+func (pl *pinggyListener) UpdateAdditionalForwarding(domain, addr string) error {
+	if _, ok := pl.additionalForwardings[domain]; !ok {
+		return fmt.Errorf("no forwarding available for domain: %s", domain)
+	}
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	tunnelMan := pl.additionalForwardings[domain]
+	tunnelMan.GetDialer().UpdateAddr(tcpAddr)
+
 	return nil
 }
 
